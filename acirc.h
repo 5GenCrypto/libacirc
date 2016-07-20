@@ -71,6 +71,8 @@ void acirc_topo_levels_destroy (acirc_topo_levels *topo);
 size_t acirc_depth      (acirc *c, acircref ref);
 size_t acirc_degree     (acirc *c, acircref ref);
 size_t acirc_max_degree (acirc *c);
+size_t acirc_var_degree (acirc *c, acircref ref, input_id id);
+size_t acirc_const_degree (acirc *c, acircref ref);
 
 // construction
 void acirc_add_test   (acirc *c, char *inp, char *out);
