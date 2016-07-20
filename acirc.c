@@ -60,7 +60,8 @@ extern FILE *yyin;
 void acirc_parse (acirc *c, char *filename)
 {
     yyin = fopen(filename, "r");
-    yyparse(&c);
+    assert(yyin != NULL);
+    yyparse(c);
     fclose(yyin);
 }
 
