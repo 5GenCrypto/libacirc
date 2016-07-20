@@ -39,6 +39,7 @@ typedef struct {
 void acirc_init  (acirc *c);
 void acirc_clear (acirc *c);
 void acirc_parse (acirc *c, char *filename);
+acirc* acirc_from_file (char *filename);
 
 // evaluation
 int acirc_eval (acirc *c, acircref ref, int *xs);
@@ -76,6 +77,8 @@ size_t acirc_const_degree (acirc *c, acircref ref);
 size_t acirc_max_degree       (acirc *c);
 size_t acirc_max_var_degree   (acirc *c, input_id id);
 size_t acirc_max_const_degree (acirc *c);
+
+size_t acirc_delta (acirc *c); // sum of all the var degrees and the const degree, maximized over outputs
 
 // construction
 void acirc_add_test   (acirc *c, char *inp, char *out);

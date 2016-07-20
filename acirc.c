@@ -68,6 +68,14 @@ void acirc_parse (acirc *c, char *filename)
     fclose(yyin);
 }
 
+acirc* acirc_from_file (char *filename)
+{
+    acirc *c = acirc_malloc(sizeof(acirc));
+    acirc_init(c);
+    acirc_parse(c, filename);
+    return c;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // acirc evaluation
 
@@ -355,6 +363,16 @@ size_t acirc_max_const_degree (acirc *c)
             ret = tmp;
     }
     return ret;
+}
+
+// get the sum of the var degrees, maximized over the output bits
+size_t acirc_delta (acirc *c)
+{
+    size_t delta = acirc_max_const_degree(c);
+    for (size_t i = 0; i < c->ninputs; i++) {
+        delta += acirc_max_var_degree(c, i);
+    }
+    return delta;
 }
 
 ////////////////////////////////////////////////////////////////////////////////
