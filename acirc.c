@@ -328,6 +328,28 @@ size_t acirc_const_degree (acirc *c, acircref ref)
     return max(xres, yres); // else op == ADD || op == SUB
 }
 
+size_t acirc_max_var_degree (acirc *c, input_id id)
+{
+    size_t ret = 0;
+    for (size_t i = 0; i < c->noutputs; i++) {
+        size_t tmp = acirc_var_degree(c, c->outrefs[i], id);
+        if (tmp > ret)
+            ret = tmp;
+    }
+    return ret;
+}
+
+size_t acirc_max_const_degree (acirc *c)
+{
+    size_t ret = 0;
+    for (size_t i = 0; i < c->noutputs; i++) {
+        size_t tmp = acirc_const_degree(c, c->outrefs[i]);
+        if (tmp > ret)
+            ret = tmp;
+    }
+    return ret;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // acirc creation
 

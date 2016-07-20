@@ -67,12 +67,15 @@ typedef struct {
 acirc_topo_levels* acirc_topological_levels (acirc *c, acircref root);
 void acirc_topo_levels_destroy (acirc_topo_levels *topo);
 
-// info
-size_t acirc_depth      (acirc *c, acircref ref);
-size_t acirc_degree     (acirc *c, acircref ref);
-size_t acirc_max_degree (acirc *c);
-size_t acirc_var_degree (acirc *c, acircref ref, input_id id);
+// degree calculations
+size_t acirc_depth        (acirc *c, acircref ref);
+size_t acirc_degree       (acirc *c, acircref ref);
+size_t acirc_var_degree   (acirc *c, acircref ref, input_id id);
 size_t acirc_const_degree (acirc *c, acircref ref);
+
+size_t acirc_max_degree       (acirc *c);
+size_t acirc_max_var_degree   (acirc *c, input_id id);
+size_t acirc_max_const_degree (acirc *c);
 
 // construction
 void acirc_add_test   (acirc *c, char *inp, char *out);
