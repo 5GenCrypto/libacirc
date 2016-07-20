@@ -60,7 +60,10 @@ extern FILE *yyin;
 void acirc_parse (acirc *c, char *filename)
 {
     yyin = fopen(filename, "r");
-    assert(yyin != NULL);
+    if (yyin == NULL) {
+        fprintf(stderr, "[libacirc] error: could not open file \"%s\"\n", filename);
+        exit(1);
+    }
     yyparse(c);
     fclose(yyin);
 }
@@ -307,6 +310,8 @@ size_t acirc_var_degree (acirc *c, acircref ref, input_id id)
     acirc_operation op = c->ops[ref];
     if (op == XINPUT) {
         return (c->args[ref][0] == id) ? 1 : 0;
+    } else if (op == YINPUT) {
+        return 0;
     }
     size_t xres = acirc_var_degree(c, c->args[ref][0], id);
     size_t yres = acirc_var_degree(c, c->args[ref][1], id);
@@ -320,6 +325,8 @@ size_t acirc_const_degree (acirc *c, acircref ref)
     acirc_operation op = c->ops[ref];
     if (op == YINPUT) {
         return 1;
+    } else if (op == XINPUT) {
+        return 0;
     }
     size_t xres = acirc_const_degree(c, c->args[ref][0]);
     size_t yres = acirc_const_degree(c, c->args[ref][1]);
