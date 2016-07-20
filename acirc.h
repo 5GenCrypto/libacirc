@@ -6,8 +6,8 @@
 #include <stddef.h>
 #include <stdint.h>
 
-typedef size_t acircref;
-typedef size_t input_id;
+typedef unsigned long acircref;
+typedef unsigned long input_id;
 
 typedef enum {
     XINPUT,
