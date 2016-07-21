@@ -36,6 +36,8 @@ line: test | xinput | yinput | gate | output
 test: TEST NUM NUM 
 { 
     acirc_add_test(c, $2, $3); 
+    free($2);
+    free($3);
 }
 
 xinput: NUM INPUT XID 

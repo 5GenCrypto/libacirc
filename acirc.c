@@ -406,9 +406,6 @@ void acirc_add_test (acirc *c, char *inpstr, char *outstr)
     c->testinps[c->ntests] = inp;
     c->testouts[c->ntests] = out;
     c->ntests += 1;
-
-    free(inpstr);
-    free(outstr);
 }
 
 void acirc_add_xinput (acirc *c, acircref ref, input_id id)
