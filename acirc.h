@@ -47,7 +47,7 @@ int acirc_eval (acirc *c, acircref ref, int *xs);
 void acirc_eval_mpz_mod (
     mpz_t rop,
     acirc *c,
-    acircref ref,
+    acircref root,
     mpz_t *xs,
     mpz_t *ys, // replace the secrets with something
     mpz_t modulus

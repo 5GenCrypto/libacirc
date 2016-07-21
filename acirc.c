@@ -101,32 +101,30 @@ int acirc_eval (acirc *c, acircref ref, int *xs)
 void acirc_eval_mpz_mod (
     mpz_t rop,
     acirc *c,
-    acircref ref,
+    acircref root,
     mpz_t *xs,
     mpz_t *ys, // replace the secrets with something
     mpz_t modulus
 ) {
-    acirc_operation op = c->ops[ref];
-    switch (op) {
-        case XINPUT: {
-            mpz_set(rop, xs[c->args[ref][0]]);
-            return;
-        }
-        case YINPUT: {
-            mpz_set(rop, ys[c->args[ref][0]]);
-            return;
-        }
-        default:;
+    acirc_operation op = c->ops[root];
+    if (op == XINPUT) {
+        mpz_set(rop, xs[c->args[root][0]]);
+        return;
+    }
+    if (op == YINPUT) {
+        mpz_set(rop, ys[c->args[root][0]]);
+        return;
     }
     mpz_t xres, yres;
     mpz_inits(xres, yres, NULL);
-    acirc_eval_mpz_mod(xres, c, c->args[ref][0], xs, ys, modulus);
-    acirc_eval_mpz_mod(yres, c, c->args[ref][1], xs, ys, modulus);
-    switch (op) {
-        case ADD: mpz_add(rop, xres, yres); break;
-        case SUB: mpz_sub(rop, xres, yres); break;
-        case MUL: mpz_mul(rop, xres, yres); break;
-        default:;
+    acirc_eval_mpz_mod(xres, c, c->args[root][0], xs, ys, modulus);
+    acirc_eval_mpz_mod(yres, c, c->args[root][1], xs, ys, modulus);
+    if (op == ADD) {
+        mpz_add(rop, xres, yres);
+    } else if (op == SUB) {
+        mpz_sub(rop, xres, yres);
+    } else if (op == MUL) {
+        mpz_mul(rop, xres, yres);
     }
     mpz_mod(rop, rop, modulus);
     mpz_clears(xres, yres, NULL);
