@@ -38,6 +38,7 @@ typedef struct {
 
 void acirc_init  (acirc *c);
 void acirc_clear (acirc *c);
+void acirc_destroy (acirc *c);
 void acirc_parse (acirc *c, char *filename);
 acirc* acirc_from_file (char *filename);
 

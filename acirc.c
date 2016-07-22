@@ -54,6 +54,12 @@ void acirc_clear (acirc *c)
     free(c->consts);
 }
 
+void acirc_destroy (acirc *c)
+{
+    acirc_clear(c);
+    free(c);
+}
+
 extern int yyparse();
 extern FILE *yyin;
 
