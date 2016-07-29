@@ -57,6 +57,17 @@ void acirc_eval_mpz_mod (
     mpz_t modulus
 );
 
+void acirc_eval_mpz_mod_memo (
+    mpz_t rop,
+    acirc *c,
+    acircref root,
+    mpz_t *xs,
+    mpz_t *ys, // replace the secrets with something
+    mpz_t modulus,
+    bool *known,
+    mpz_t *cache
+);
+
 // run all tests
 bool acirc_ensure (acirc *c, bool verbose);
 
