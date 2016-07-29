@@ -34,6 +34,9 @@ typedef struct {
     size_t _test_alloc;
     size_t _outref_alloc;
     size_t _consts_alloc;
+    bool _degree_memo_allocated;
+    size_t **_degree_memo;
+    bool   **_degree_memoed;
 } acirc;
 
 void acirc_init  (acirc *c);

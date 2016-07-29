@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void degree_memo_allocate (acirc *c);
+
 static void ensure_gate_space (acirc *c, acircref ref);
 static bool in_array (int x, int *ys, size_t len);
 static bool any_in_array (size_t *xs, int xlen, int *ys, size_t ylen);
@@ -35,6 +37,21 @@ void acirc_init (acirc *c)
     c->testinps = acirc_malloc(c->_test_alloc   * sizeof(int*));
     c->testouts = acirc_malloc(c->_test_alloc   * sizeof(int*));
     c->consts   = acirc_malloc(c->_consts_alloc * sizeof(int));
+    c->_degree_memo_allocated = false;
+}
+
+static void degree_memo_allocate (acirc *c)
+{
+    c->_degree_memo   = acirc_malloc((c->ninputs+1) * sizeof(size_t*));
+    c->_degree_memoed = acirc_malloc((c->ninputs+1) * sizeof(bool*));
+    for (size_t i = 0; i < c->ninputs+1; i++) {
+        c->_degree_memo[i]   = acirc_malloc(c->nrefs * sizeof(size_t));
+        c->_degree_memoed[i] = acirc_malloc(c->nrefs * sizeof(bool));
+        for (size_t j = 0; j < c->nrefs; j++) {
+            c->_degree_memoed[i][j] = false;
+        }
+    }
+    c->_degree_memo_allocated = true;
 }
 
 void acirc_clear (acirc *c)
@@ -52,6 +69,14 @@ void acirc_clear (acirc *c)
     free(c->testinps);
     free(c->testouts);
     free(c->consts);
+    if (c->_degree_memo_allocated) {
+        for (size_t i = 0; i < c->ninputs + 1; i++) {
+            free(c->_degree_memo[i]);
+            free(c->_degree_memoed[i]);
+        }
+        free(c->_degree_memo);
+        free(c->_degree_memoed);
+    }
 }
 
 void acirc_destroy (acirc *c)
@@ -282,6 +307,7 @@ void acirc_topo_levels_destroy (acirc_topo_levels *topo)
 ////////////////////////////////////////////////////////////////////////////////
 // acirc info calculations
 
+
 size_t acirc_depth (acirc *c, acircref ref)
 {
     acirc_operation op = c->ops[ref];
@@ -319,6 +345,11 @@ size_t acirc_max_degree (acirc *c)
 
 size_t acirc_var_degree (acirc *c, acircref ref, input_id id)
 {
+    if (!c->_degree_memo_allocated)
+        degree_memo_allocate(c);
+    if (c->_degree_memoed[id][ref])
+        return c->_degree_memo[id][ref];
+
     acirc_operation op = c->ops[ref];
     if (op == XINPUT) {
         return (c->args[ref][0] == id) ? 1 : 0;
@@ -329,11 +360,21 @@ size_t acirc_var_degree (acirc *c, acircref ref, input_id id)
     size_t yres = acirc_var_degree(c, c->args[ref][1], id);
     if (op == MUL)
         return xres + yres;
-    return max(xres, yres); // else op == ADD || op == SUB
+
+    size_t res = max(xres, yres); // else op == ADD || op == SUB
+
+    c->_degree_memo[id][ref] = res;
+    c->_degree_memoed[id][ref] = true;
+    return res;
 }
 
 size_t acirc_const_degree (acirc *c, acircref ref)
 {
+    if (!c->_degree_memo_allocated)
+        degree_memo_allocate(c);
+    if (c->_degree_memoed[c->ninputs][ref])
+        return c->_degree_memo[c->ninputs][ref];
+
     acirc_operation op = c->ops[ref];
     if (op == YINPUT) {
         return 1;
@@ -344,7 +385,12 @@ size_t acirc_const_degree (acirc *c, acircref ref)
     size_t yres = acirc_const_degree(c, c->args[ref][1]);
     if (op == MUL)
         return xres + yres;
-    return max(xres, yres); // else op == ADD || op == SUB
+
+    size_t res = max(xres, yres); // else op == ADD || op == SUB
+
+    c->_degree_memo[c->ninputs][ref] = res;
+    c->_degree_memoed[c->ninputs][ref] = true;
+    return res;
 }
 
 size_t acirc_max_var_degree (acirc *c, input_id id)
