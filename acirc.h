@@ -72,7 +72,7 @@ void acirc_eval_mpz_mod_memo (
 bool acirc_ensure (acirc *c, bool verbose);
 
 // topological orderings
-void acirc_topological_order (acircref *topo, acirc *c, acircref ref);
+size_t acirc_topological_order (acircref *topo, acirc *c, acircref ref);
 
 typedef struct {
     int nlevels;

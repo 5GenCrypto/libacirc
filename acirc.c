@@ -110,23 +110,39 @@ acirc* acirc_from_file (char *filename)
 ////////////////////////////////////////////////////////////////////////////////
 // acirc evaluation
 
-int acirc_eval (acirc *c, acircref ref, int *xs)
+int acirc_eval (acirc *c, acircref root, int *xs)
 {
-    acirc_operation op = c->ops[ref];
-    switch (op) {
-        case XINPUT: return xs[c->args[ref][0]];
-        case YINPUT: return c->args[ref][1];
-        default:; // silence warning
+    acircref topo [c->nrefs];
+    acircref vals [c->nrefs];
+    size_t n = acirc_topological_order(topo, c, root);
+
+    for (size_t i = 0; i < n; i++) {
+        acircref ref = topo[i];
+
+        acirc_operation op = c->ops[ref];
+
+        if (op == XINPUT) {
+            vals[ref] = xs[c->args[ref][0]];
+        }
+
+        else if (op == YINPUT) {
+            vals[ref] = c->args[ref][1];
+        }
+
+        else if (op == ADD) {
+            vals[ref] = vals[c->args[ref][0]] + vals[c->args[ref][1]];
+        }
+
+        else if (op == SUB) {
+            vals[ref] = vals[c->args[ref][0]] - vals[c->args[ref][1]];
+        }
+
+        else if (op == MUL) {
+            vals[ref] = vals[c->args[ref][0]] * vals[c->args[ref][1]];
+        }
     }
-    int xres = acirc_eval(c, c->args[ref][0], xs);
-    int yres = acirc_eval(c, c->args[ref][1], xs);
-    switch (op) {
-        case ADD: return xres + yres;
-        case SUB: return xres - yres;
-        case MUL: return xres * yres;
-        default:; // silence warning
-    }
-    exit(EXIT_FAILURE); // should never be reached
+
+    return vals[root];
 }
 
 void acirc_eval_mpz_mod (
@@ -244,7 +260,7 @@ bool acirc_ensure (acirc *c, bool verbose)
 ////////////////////////////////////////////////////////////////////////////////
 // acirc topological ordering
 
-static void topo_helper (int ref, acircref *topo, int *seen, int *i, acirc *c)
+static void topo_helper (int ref, acircref *topo, bool *seen, size_t *i, acirc *c)
 {
     if (seen[ref]) return;
     acirc_operation op = c->ops[ref];
@@ -256,12 +272,14 @@ static void topo_helper (int ref, acircref *topo, int *seen, int *i, acirc *c)
     seen[ref]    = 1;
 }
 
-void acirc_topological_order (acircref *topo, acirc *c, acircref ref)
+// returns the number of references in the topological order
+size_t acirc_topological_order (acircref *topo, acirc *c, acircref ref)
 {
-    int *seen = acirc_calloc(c->_ref_alloc, sizeof(int));
-    int i = 0;
+    bool *seen = acirc_calloc(c->_ref_alloc, sizeof(bool));
+    size_t i = 0;
     topo_helper(ref, topo, seen, &i, c);
     free(seen);
+    return i;
 }
 
 // dependencies fills an array with the refs to the subcircuit rooted at ref.
@@ -351,39 +369,83 @@ void acirc_topo_levels_destroy (acirc_topo_levels *topo)
 ////////////////////////////////////////////////////////////////////////////////
 // acirc info calculations
 
+size_t acirc_depth_helper (acirc *c, acircref ref, size_t *memo, bool *seen)
+{
+    if (seen[ref])
+        return memo[ref];
+
+    size_t ret;
+    acirc_operation op = c->ops[ref];
+    if (op == XINPUT || op == YINPUT) {
+        ret = 0;
+    } else {
+        size_t xres = acirc_depth_helper(c, c->args[ref][0], memo, seen);
+        size_t yres = acirc_depth_helper(c, c->args[ref][1], memo, seen);
+        ret = max(xres, yres);
+    }
+
+    seen[ref] = true;
+    memo[ref] = ret;
+    return ret;
+}
 
 size_t acirc_depth (acirc *c, acircref ref)
 {
+    size_t memo [c->nrefs];
+    bool   seen [c->nrefs];
+
+    for (size_t i = 0; i < c->nrefs; i++)
+        seen[i] = false;
+
+    return acirc_depth_helper(c, ref, memo, seen);
+}
+
+size_t acirc_degree_helper (acirc *c, acircref ref, size_t *memo, bool *seen)
+{
+    if (seen[ref])
+        return memo[ref];
+
+    size_t ret;
     acirc_operation op = c->ops[ref];
     if (op == XINPUT || op == YINPUT) {
-        return 0;
+        ret = 1;
+    } else {
+        size_t xres = acirc_degree_helper(c, c->args[ref][0], memo, seen);
+        size_t yres = acirc_degree_helper(c, c->args[ref][1], memo, seen);
+        if (op == MUL)
+            ret = xres + yres;
+        else
+            ret = max(xres, yres);
     }
-    size_t xres = acirc_depth(c, c->args[ref][0]);
-    size_t yres = acirc_depth(c, c->args[ref][1]);
-    return max(xres, yres);
+
+    seen[ref] = true;
+    memo[ref] = ret;
+    return ret;
 }
 
 size_t acirc_degree (acirc *c, acircref ref)
 {
-    acirc_operation op = c->ops[ref];
-    if (op == XINPUT || op == YINPUT) {
-        return 1;
-    }
-    size_t xres = acirc_degree(c, c->args[ref][0]);
-    size_t yres = acirc_degree(c, c->args[ref][1]);
-    if (op == MUL)
-        return xres + yres;
-    return max(xres, yres); // else op == ADD || op == SUB
+    size_t memo [c->nrefs];
+    bool   seen [c->nrefs];
+
+    for (size_t i = 0; i < c->nrefs; i++)
+        seen[i] = false;
+
+    return acirc_degree_helper(c, ref, memo, seen);
 }
 
 size_t acirc_max_degree (acirc *c)
 {
+    size_t memo [c->nrefs];
+    bool   seen [c->nrefs];
+
     size_t ret = 0;
     for (size_t i = 0; i < c->noutputs; i++) {
-        size_t tmp = acirc_degree(c, c->outrefs[i]);
+        size_t tmp = acirc_degree_helper(c, c->outrefs[i], memo, seen);
         if (tmp > ret)
             ret = tmp;
     }
+
     return ret;
 }
 
