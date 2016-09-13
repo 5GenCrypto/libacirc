@@ -439,6 +439,9 @@ size_t acirc_max_degree (acirc *c)
     size_t memo [c->nrefs];
     bool   seen [c->nrefs];
 
+    for (size_t i = 0; i < c->nrefs; i++)
+        seen[i] = false;
+
     size_t ret = 0;
     for (size_t i = 0; i < c->noutputs; i++) {
         size_t tmp = acirc_degree_helper(c, c->outrefs[i], memo, seen);
