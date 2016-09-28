@@ -10,7 +10,7 @@ AM_YFLAGS = -d
 BUILT_SOURCES = parse.h
 
 libacirc_la_SOURCES = acirc.c $(PARSER)
-libacirc_la_LDFLAGS = -release 0.1.0 -no-undefined
+libacirc_la_LDFLAGS = -no-undefined -version-info 0:0:0
 libacirc_la_LIBADD = -lm
 
 include_HEADERS = acirc.h
