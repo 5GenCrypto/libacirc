@@ -51,6 +51,6 @@ AC_CHECK_HEADERS([gmp.h])
 
 AC_FUNC_MALLOC
 
-AC_CONFIG_FILES([Makefile])
+AC_CONFIG_FILES([Makefile test/Makefile])
 
 AC_OUTPUT

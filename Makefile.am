@@ -14,3 +14,5 @@ libacirc_la_LDFLAGS = -no-undefined -version-info 0:0:0
 libacirc_la_LIBADD = -lm
 
 include_HEADERS = acirc.h
+
+SUBDIRS = test
