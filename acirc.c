@@ -145,6 +145,56 @@ int acirc_eval (acirc *c, acircref root, int *xs)
     return vals[root];
 }
 
+int
+acirc_eval_abstract_memo(void *rop, acirc *c, acircref root, void **xs,
+                         void **ys, bool *known, void **cache,
+                         void * (*init)(void),
+                         void (*clear)(void *),
+                         int (*set)(void *, void *),
+                         int (*add)(void *, void *, void *),
+                         int (*sub)(void *, void *, void *),
+                         int (*mul)(void *, void *, void *))
+{
+    if (known[root]) {
+        set(rop, cache[root]);
+    } else {
+        acirc_operation op = c->ops[root];
+        if (op == XINPUT) {
+            set(rop, xs[c->args[root][0]]);
+        } else if (op == YINPUT) {
+            set(rop, ys[c->args[root][0]]);
+        } else {
+            void *xres, *yres;
+
+            xres = init();
+            yres = init();
+
+            acirc_eval_abstract_memo(xres, c, c->args[root][0], xs, ys, known,
+                                     cache, init, free, set, add, sub, mul);
+            acirc_eval_abstract_memo(yres, c, c->args[root][1], xs, ys, known,
+                                     cache, init, free, set, add, sub, mul);
+
+            if (op == ADD) {
+                add(rop, xres, yres);
+            } else if (op == SUB) {
+                sub(rop, xres, yres);
+            } else if (op == MUL) {
+                mul(rop, xres, yres);
+            } else {
+                assert(false && "unknown op");
+            }
+
+            clear(xres);
+            clear(yres);
+
+            cache[root] = init();
+            set(cache[root], rop);
+            known[root] = true;
+        }
+    }
+    return 0;
+}
+
 void acirc_eval_mpz_mod (
     mpz_t rop,
     acirc *c,
