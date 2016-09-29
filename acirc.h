@@ -48,6 +48,16 @@ acirc* acirc_from_file (char *filename);
 // evaluation
 int acirc_eval (acirc *c, acircref ref, int *xs);
 
+int
+acirc_eval_abstract_memo(void *rop, acirc *c, acircref root, void **xs,
+                         void **ys, bool *known, void **cache,
+                         void * (*init)(void),
+                         void (*clear)(void *),
+                         int (*set)(void *, void *),
+                         int (*add)(void *, void *, void *),
+                         int (*sub)(void *, void *, void *),
+                         int (*mul)(void *, void *, void *));
+
 void acirc_eval_mpz_mod (
     mpz_t rop,
     acirc *c,
