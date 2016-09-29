@@ -85,7 +85,7 @@ void acirc_destroy (acirc *c)
     free(c);
 }
 
-extern int yyparse();
+extern int yyparse(acirc *);
 extern FILE *yyin;
 
 void acirc_parse (acirc *c, char *filename)
@@ -419,7 +419,7 @@ void acirc_topo_levels_destroy (acirc_topo_levels *topo)
 ////////////////////////////////////////////////////////////////////////////////
 // acirc info calculations
 
-size_t acirc_depth_helper (acirc *c, acircref ref, size_t *memo, bool *seen)
+static size_t acirc_depth_helper (acirc *c, acircref ref, size_t *memo, bool *seen)
 {
     if (seen[ref])
         return memo[ref];
@@ -450,7 +450,7 @@ size_t acirc_depth (acirc *c, acircref ref)
     return acirc_depth_helper(c, ref, memo, seen);
 }
 
-size_t acirc_degree_helper (acirc *c, acircref ref, size_t *memo, bool *seen)
+static size_t acirc_degree_helper (acirc *c, acircref ref, size_t *memo, bool *seen)
 {
     if (seen[ref])
         return memo[ref];
@@ -714,7 +714,7 @@ static void array_printstring_rev(int *xs, size_t n)
 ////////////////////////////////////////////////////////////////////////////////
 // custom allocators that complain when they fail
 
-void* acirc_calloc(size_t nmemb, size_t size)
+static void* acirc_calloc(size_t nmemb, size_t size)
 {
     void *ptr = calloc(nmemb, size);
     if (ptr == NULL) {
@@ -724,7 +724,7 @@ void* acirc_calloc(size_t nmemb, size_t size)
     return ptr;
 }
 
-void* acirc_malloc(size_t size)
+static void* acirc_malloc(size_t size)
 {
     void *ptr = malloc(size);
     if (ptr == NULL) {
@@ -734,7 +734,7 @@ void* acirc_malloc(size_t size)
     return ptr;
 }
 
-void* acirc_realloc(void *ptr, size_t size)
+static void* acirc_realloc(void *ptr, size_t size)
 {
     void *ptr_ = realloc(ptr, size);
     if (ptr_ == NULL) {
