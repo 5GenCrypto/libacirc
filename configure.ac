@@ -46,10 +46,13 @@ AC_CHECK_HEADERS([gmp.h])
 if test "x$enable_gmp" = x"yes"; then
   AC_SEARCH_LIBS(__gmpz_init, gmp, [], AC_MSG_ERROR([libgmp not found]))
   AC_DEFINE(HAVE_GMP, 1, [Define whether gmp is enabled])
+  AC_SUBST(ACIRC_HAVE_GMP, ["#define HAVE_GMP 1"])
+else
+  AC_SUBST(ACIRC_HAVE_GMP, [""])
 fi
 
 AC_FUNC_MALLOC
 
-AC_CONFIG_FILES([Makefile test/Makefile])
+AC_CONFIG_FILES([Makefile test/Makefile acirc.h])
 
 AC_OUTPUT
