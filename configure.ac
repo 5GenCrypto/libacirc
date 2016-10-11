@@ -17,7 +17,14 @@ AC_PROG_LIBTOOL
 AC_PROG_YACC
 AC_PROG_LEX
 
-AC_ARG_ENABLE(debug,        [  --enable-debug          Enable assert() statements for debugging.], [enable_debug=yes])
+AC_ARG_ENABLE(debug,
+[AS_HELP_STRING([--enable-debug], [enable debugging])],
+[], [enable_debug=no])
+
+AC_ARG_ENABLE(gmp,
+[AS_HELP_STRING([--disable-gmp], [do not compile gmp support])],
+[], [enable_gmp=yes])
+
 
 CFLAGS=                         dnl get rid of default -g -O2
 COMMON_CFLAGS="-Wall -Wformat -Wformat-security -Wextra -Wunused \
@@ -36,18 +43,10 @@ AC_SUBST(EXTRA_CFLAGS)
 
 AC_CHECK_HEADERS([gmp.h])
 
-#AC_SEARCH_LIBS(__gmpz_init,gmp)
-#if test "x$ac_cv_search___gmpz_init" = "xno"; then
-  #AC_MSG_ERROR([libgmp not found])
-#fi
-#AC_SEARCH_LIBS(_fmpz_clear_mpz,flint)
-#if test "x$ac_cv_search__fmpz_clear_mpz" = "xno"; then
-  #AC_MSG_ERROR([libflint not found])
-#fi
-#AC_SEARCH_LIBS(mpfr_init2,mpfr)
-#if test "x$ac_cv_search_mpfr_init2" = "xno"; then
-  #AC_MSG_ERROR([libmpfr not found])
-#fi
+if test "x$enable_gmp" = x"yes"; then
+  AC_SEARCH_LIBS(__gmpz_init, gmp, [], AC_MSG_ERROR([libgmp not found]))
+  AC_DEFINE(HAVE_GMP, 1, [Define whether gmp is enabled])
+fi
 
 AC_FUNC_MALLOC
 
