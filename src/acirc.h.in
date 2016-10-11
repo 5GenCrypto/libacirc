@@ -1,7 +1,7 @@
 #ifndef __ACIRC_H__
 #define __ACIRC_H__
 
-#define HAVE_GMP 1
+@ACIRC_HAVE_GMP@
 
 #include <stdbool.h>
 #include <stddef.h>
@@ -12,10 +12,6 @@
 
 typedef unsigned long acircref;
 typedef unsigned long input_id;
-
-#ifdef __cplusplus
-extern "C" {
-#endif
 
 typedef enum {
     XINPUT,
@@ -122,10 +118,6 @@ void acirc_eval_mpz_mod_memo (
     bool *known,
     mpz_t *cache
 );
-#endif
-
-#ifdef __cplusplus
-}
 #endif
 
 #endif
