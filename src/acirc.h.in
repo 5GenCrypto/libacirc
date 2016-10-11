@@ -43,6 +43,10 @@ typedef struct {
     bool   **_degree_memoed;
 } acirc;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 void acirc_init  (acirc *c);
 void acirc_clear (acirc *c);
 void acirc_destroy (acirc *c);
@@ -118,6 +122,10 @@ void acirc_eval_mpz_mod_memo (
     bool *known,
     mpz_t *cache
 );
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif
