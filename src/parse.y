@@ -6,8 +6,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int yylex();
-void yyerror(acirc *c, const char *m){ printf("Error! %s\n", m); }
+int yylex(void);
+static void yyerror(acirc *c, const char *m){ (void) c; printf("Error! %s\n", m); }
 unsigned long from_bitstring (char *s);
 
 #define YYINITDEPTH 100000
