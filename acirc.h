@@ -13,6 +13,10 @@
 typedef unsigned long acircref;
 typedef unsigned long input_id;
 
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 typedef enum {
     XINPUT,
     YINPUT,
@@ -118,6 +122,10 @@ void acirc_eval_mpz_mod_memo (
     bool *known,
     mpz_t *cache
 );
+#endif
+
+#ifdef __cplusplus
+}
 #endif
 
 #endif
