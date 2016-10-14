@@ -88,7 +88,7 @@ void acirc_destroy (acirc *c)
 extern int yyparse(acirc *);
 extern FILE *yyin;
 
-void acirc_parse (acirc *c, char *filename)
+void acirc_parse (acirc *c, const char *const filename)
 {
     yyin = fopen(filename, "r");
     if (yyin == NULL) {
@@ -99,7 +99,7 @@ void acirc_parse (acirc *c, char *filename)
     fclose(yyin);
 }
 
-acirc* acirc_from_file (char *filename)
+acirc* acirc_from_file (const char *const filename)
 {
     acirc *c = acirc_malloc(sizeof(acirc));
     acirc_init(c);

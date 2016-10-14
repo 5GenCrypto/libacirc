@@ -50,8 +50,8 @@ extern "C" {
 void acirc_init  (acirc *c);
 void acirc_clear (acirc *c);
 void acirc_destroy (acirc *c);
-void acirc_parse (acirc *c, char *filename);
-acirc* acirc_from_file (char *filename);
+void acirc_parse (acirc *c, const char *const filename);
+acirc* acirc_from_file (const char *const filename);
 
 // evaluation
 int acirc_eval (acirc *c, acircref ref, int *xs);
