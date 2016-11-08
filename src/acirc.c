@@ -657,7 +657,6 @@ void acirc_add_test(acirc *c, char *inpstr, char *outstr)
 
 void acirc_add_xinput(acirc *c, acircref ref, input_id id)
 {
-    printf("%ld input x%ld\n", ref, id);
     ensure_gate_space(c, ref);
     c->ninputs += 1;
     c->nrefs   += 1;
@@ -688,12 +687,6 @@ void acirc_add_yinput(acirc *c, acircref ref, size_t id, int val)
 
 void acirc_add_gate(acirc *c, acircref ref, acirc_operation op, int xref, int yref, bool is_output)
 {
-    printf("%ld %s %s %d %d\n", ref,
-           is_output ? "output" : "gate",
-           op == ADD ? "ADD"
-                     : op == SUB ? "SUB"
-                                 : op == MUL ? "MUL" : "ID",
-           xref, yref);
     ensure_gate_space(c, ref);
     c->ngates   += 1;
     c->nrefs    += 1;
