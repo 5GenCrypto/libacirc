@@ -19,7 +19,7 @@ static void* acirc_calloc  (size_t nmemb, size_t size);
 
 #define max(x,y) (x >= y ? x : y)
 
-void acirc_init (acirc *c)
+void acirc_init(acirc *c)
 {
     c->ninputs  = 0;
     c->nconsts  = 0;
@@ -40,7 +40,7 @@ void acirc_init (acirc *c)
     c->_degree_memo_allocated = false;
 }
 
-static void degree_memo_allocate (acirc *c)
+static void degree_memo_allocate(acirc *c)
 {
     c->_degree_memo   = acirc_malloc((c->ninputs+1) * sizeof(size_t*));
     c->_degree_memoed = acirc_malloc((c->ninputs+1) * sizeof(bool*));
@@ -54,7 +54,7 @@ static void degree_memo_allocate (acirc *c)
     c->_degree_memo_allocated = true;
 }
 
-void acirc_clear (acirc *c)
+void acirc_clear(acirc *c)
 {
     for (size_t i = 0; i < c->nrefs; i++) {
         free(c->args[i]);
@@ -79,16 +79,9 @@ void acirc_clear (acirc *c)
     }
 }
 
-void acirc_destroy (acirc *c)
-{
-    acirc_clear(c);
-    free(c);
-}
-
 extern int yyparse(acirc *);
 extern FILE *yyin;
-
-void acirc_parse (acirc *c, const char *const filename)
+void acirc_parse(acirc *c, const char *const filename)
 {
     yyin = fopen(filename, "r");
     if (yyin == NULL) {
@@ -99,7 +92,7 @@ void acirc_parse (acirc *c, const char *const filename)
     fclose(yyin);
 }
 
-acirc* acirc_from_file (const char *const filename)
+acirc * acirc_from_file(const char *const filename)
 {
     acirc *c = acirc_malloc(sizeof(acirc));
     acirc_init(c);
@@ -107,13 +100,49 @@ acirc* acirc_from_file (const char *const filename)
     return c;
 }
 
+bool acirc_to_file(const acirc *const c, const char *const fname)
+{
+    const size_t n = c->nrefs;
+    bool ret = true;
+    FILE *f;
+
+    f = fopen(fname, "w");
+    if (f == NULL)
+        return false;
+    for (size_t i = 0; i < n; ++i) {
+        acirc_operation op = c->ops[i];
+        switch (op) {
+        case XINPUT:
+            fprintf(f, "%ld input x%ld\n", i, c->args[i][0]);
+            break;
+        case YINPUT:
+            assert(0);
+            break;
+        case ADD:
+            fprintf(f, "%ld gate ADD %ld %ld\n", i, c->args[i][0], c->args[i][1]);
+            break;
+        case SUB:
+            fprintf(f, "%ld gate SUB %ld %ld\n", i, c->args[i][0], c->args[i][1]);
+            break;
+        case MUL:
+            fprintf(f, "%ld gate MUL %ld %ld\n", i, c->args[i][0], c->args[i][1]);
+            break;
+        default:
+            assert(0);
+            ret = false;
+        }
+    }
+    fclose(f);
+    return ret;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // acirc evaluation
 
-int acirc_eval (acirc *c, acircref root, int *xs)
+int acirc_eval(acirc *c, acircref root, int *xs)
 {
-    acircref topo [c->nrefs];
-    acircref vals [c->nrefs];
+    acircref topo[c->nrefs];
+    acircref vals[c->nrefs];
     size_t n = acirc_topological_order(topo, c, root);
 
     for (size_t i = 0; i < n; i++) {
@@ -145,14 +174,10 @@ int acirc_eval (acirc *c, acircref root, int *xs)
     return vals[root];
 }
 
-void acirc_eval_mpz_mod (
-    mpz_t rop,
-    acirc *c,
-    acircref root,
-    mpz_t *xs,
-    mpz_t *ys, // replace the secrets with something
-    mpz_t modulus
-) {
+#ifdef HAVE_GMP
+void acirc_eval_mpz_mod (mpz_t rop, acirc *c, acircref root, mpz_t *xs,
+                         mpz_t *ys, mpz_t modulus)
+{
     acirc_operation op = c->ops[root];
     if (op == XINPUT) {
         mpz_set(rop, xs[c->args[root][0]]);
@@ -177,16 +202,9 @@ void acirc_eval_mpz_mod (
     mpz_clears(xres, yres, NULL);
 }
 
-void acirc_eval_mpz_mod_memo (
-    mpz_t rop,
-    acirc *c,
-    acircref root,
-    mpz_t *xs,
-    mpz_t *ys, // replace the secrets with something
-    mpz_t modulus,
-    bool *known,
-    mpz_t *cache
-) {
+void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root, mpz_t *xs,
+                             mpz_t *ys, mpz_t modulus, bool *known, mpz_t *cache)
+{
     if (known[root]) {
         mpz_set(rop, cache[root]);
         return;
@@ -219,9 +237,9 @@ void acirc_eval_mpz_mod_memo (
     mpz_set(cache[root], rop);
     known[root] = true;
 }
+#endif
 
-
-bool acirc_ensure (acirc *c, bool verbose)
+bool acirc_ensure(acirc *c, bool verbose)
 {
     if (verbose)
         puts("running acirc tests in plaintext...");
@@ -260,7 +278,7 @@ bool acirc_ensure (acirc *c, bool verbose)
 ////////////////////////////////////////////////////////////////////////////////
 // acirc topological ordering
 
-static void topo_helper (int ref, acircref *topo, bool *seen, size_t *i, acirc *c)
+static void topo_helper(int ref, acircref *topo, bool *seen, size_t *i, acirc *c)
 {
     if (seen[ref]) return;
     acirc_operation op = c->ops[ref];
@@ -273,7 +291,7 @@ static void topo_helper (int ref, acircref *topo, bool *seen, size_t *i, acirc *
 }
 
 // returns the number of references in the topological order
-size_t acirc_topological_order (acircref *topo, acirc *c, acircref ref)
+size_t acirc_topological_order(acircref *topo, acirc *c, acircref ref)
 {
     bool *seen = acirc_calloc(c->_ref_alloc, sizeof(bool));
     size_t i = 0;
@@ -284,7 +302,7 @@ size_t acirc_topological_order (acircref *topo, acirc *c, acircref ref)
 
 // dependencies fills an array with the refs to the subcircuit rooted at ref.
 // deps is the target array, i is an index into it.
-static void dependencies_helper (acircref *deps, bool *seen, int *i, acirc *c, int ref)
+static void dependencies_helper(acircref *deps, bool *seen, int *i, acirc *c, int ref)
 {
     if (seen[ref]) return;
     acirc_operation op = c->ops[ref];
@@ -299,7 +317,7 @@ static void dependencies_helper (acircref *deps, bool *seen, int *i, acirc *c, i
     seen[ref] = 1;
 }
 
-static int dependencies (acircref *deps, acirc *c, int ref)
+static int dependencies(acircref *deps, acirc *c, int ref)
 {
     bool *seen = acirc_calloc(c->nrefs, sizeof(bool));
     int ndeps = 0;
@@ -308,7 +326,7 @@ static int dependencies (acircref *deps, acirc *c, int ref)
     return ndeps;
 }
 
-acirc_topo_levels* acirc_topological_levels (acirc *c, acircref root)
+acirc_topo_levels * acirc_topological_levels(acirc *c, acircref root)
 {
     acirc_topo_levels *topo = acirc_malloc(sizeof(acirc_topo_levels));
 
@@ -357,7 +375,7 @@ acirc_topo_levels* acirc_topological_levels (acirc *c, acircref root)
     return topo;
 }
 
-void acirc_topo_levels_destroy (acirc_topo_levels *topo)
+void acirc_topo_levels_destroy(acirc_topo_levels *topo)
 {
     for (int i = 0; i < topo->nlevels; i++)
         free(topo->levels[i]);
@@ -369,7 +387,7 @@ void acirc_topo_levels_destroy (acirc_topo_levels *topo)
 ////////////////////////////////////////////////////////////////////////////////
 // acirc info calculations
 
-static size_t acirc_depth_helper (acirc *c, acircref ref, size_t *memo, bool *seen)
+static size_t acirc_depth_helper(acirc *c, acircref ref, size_t *memo, bool *seen)
 {
     if (seen[ref])
         return memo[ref];
@@ -389,7 +407,7 @@ static size_t acirc_depth_helper (acirc *c, acircref ref, size_t *memo, bool *se
     return ret;
 }
 
-size_t acirc_depth (acirc *c, acircref ref)
+size_t acirc_depth(acirc *c, acircref ref)
 {
     size_t memo [c->nrefs];
     bool   seen [c->nrefs];
@@ -400,7 +418,7 @@ size_t acirc_depth (acirc *c, acircref ref)
     return acirc_depth_helper(c, ref, memo, seen);
 }
 
-static size_t acirc_degree_helper (acirc *c, acircref ref, size_t *memo, bool *seen)
+static size_t acirc_degree_helper(acirc *c, acircref ref, size_t *memo, bool *seen)
 {
     if (seen[ref])
         return memo[ref];
@@ -423,7 +441,7 @@ static size_t acirc_degree_helper (acirc *c, acircref ref, size_t *memo, bool *s
     return ret;
 }
 
-size_t acirc_degree (acirc *c, acircref ref)
+size_t acirc_degree(acirc *c, acircref ref)
 {
     size_t memo [c->nrefs];
     bool   seen [c->nrefs];
@@ -434,7 +452,7 @@ size_t acirc_degree (acirc *c, acircref ref)
     return acirc_degree_helper(c, ref, memo, seen);
 }
 
-size_t acirc_max_degree (acirc *c)
+size_t acirc_max_degree(acirc *c)
 {
     size_t memo [c->nrefs];
     bool   seen [c->nrefs];
@@ -452,7 +470,7 @@ size_t acirc_max_degree (acirc *c)
     return ret;
 }
 
-size_t acirc_var_degree (acirc *c, acircref ref, input_id id)
+size_t acirc_var_degree(acirc *c, acircref ref, input_id id)
 {
     if (!c->_degree_memo_allocated)
         degree_memo_allocate(c);
@@ -477,7 +495,7 @@ size_t acirc_var_degree (acirc *c, acircref ref, input_id id)
     return res;
 }
 
-size_t acirc_const_degree (acirc *c, acircref ref)
+size_t acirc_const_degree(acirc *c, acircref ref)
 {
     if (!c->_degree_memo_allocated)
         degree_memo_allocate(c);
@@ -502,7 +520,7 @@ size_t acirc_const_degree (acirc *c, acircref ref)
     return res;
 }
 
-size_t acirc_max_var_degree (acirc *c, input_id id)
+size_t acirc_max_var_degree(acirc *c, input_id id)
 {
     size_t ret = 0;
     for (size_t i = 0; i < c->noutputs; i++) {
@@ -513,7 +531,7 @@ size_t acirc_max_var_degree (acirc *c, input_id id)
     return ret;
 }
 
-size_t acirc_max_const_degree (acirc *c)
+size_t acirc_max_const_degree(acirc *c)
 {
     size_t ret = 0;
     for (size_t i = 0; i < c->noutputs; i++) {
@@ -525,7 +543,7 @@ size_t acirc_max_const_degree (acirc *c)
 }
 
 // get the sum of the var degrees, maximized over the output bits
-size_t acirc_delta (acirc *c)
+size_t acirc_delta(acirc *c)
 {
     size_t delta = acirc_max_const_degree(c);
     for (size_t i = 0; i < c->ninputs; i++) {
@@ -537,7 +555,7 @@ size_t acirc_delta (acirc *c)
 ////////////////////////////////////////////////////////////////////////////////
 // acirc creation
 
-void acirc_add_test (acirc *c, char *inpstr, char *outstr)
+void acirc_add_test(acirc *c, char *inpstr, char *outstr)
 {
     if (c->ntests >= c->_test_alloc) {
         c->testinps = acirc_realloc(c->testinps, 2 * c->_test_alloc * sizeof(int**));
@@ -567,8 +585,9 @@ void acirc_add_test (acirc *c, char *inpstr, char *outstr)
     c->ntests += 1;
 }
 
-void acirc_add_xinput (acirc *c, acircref ref, input_id id)
+void acirc_add_xinput(acirc *c, acircref ref, input_id id)
 {
+    printf("%ld input x%ld\n", ref, id);
     ensure_gate_space(c, ref);
     c->ninputs += 1;
     c->nrefs   += 1;
@@ -579,7 +598,7 @@ void acirc_add_xinput (acirc *c, acircref ref, input_id id)
     c->args[ref] = args;
 }
 
-void acirc_add_yinput (acirc *c, acircref ref, size_t id, int val)
+void acirc_add_yinput(acirc *c, acircref ref, size_t id, int val)
 {
     ensure_gate_space(c, ref);
     if (c->nconsts >= c->_consts_alloc) {
@@ -596,8 +615,14 @@ void acirc_add_yinput (acirc *c, acircref ref, size_t id, int val)
     c->args[ref] = args;
 }
 
-void acirc_add_gate (acirc *c, acircref ref, acirc_operation op, int xref, int yref, bool is_output)
+void acirc_add_gate(acirc *c, acircref ref, acirc_operation op, int xref, int yref, bool is_output)
 {
+    printf("%ld %sgate %s %d %d\n", ref,
+           is_output ? "output " : "",
+           op == ADD ? "ADD"
+                     : op == SUB ? "SUB"
+                     : "MUL",
+           xref, yref);
     ensure_gate_space(c, ref);
     c->ngates   += 1;
     c->nrefs    += 1;
@@ -618,7 +643,7 @@ void acirc_add_gate (acirc *c, acircref ref, acirc_operation op, int xref, int y
 ////////////////////////////////////////////////////////////////////////////////
 // helpers
 
-static void ensure_gate_space (acirc *c, acircref ref)
+static void ensure_gate_space(acirc *c, acircref ref)
 {
     if (ref >= c->_ref_alloc) {
         c->args = acirc_realloc(c->args, 2 * c->_ref_alloc * sizeof(acircref**));
@@ -627,7 +652,7 @@ static void ensure_gate_space (acirc *c, acircref ref)
     }
 }
 
-acirc_operation acirc_str2op (char *s)
+acirc_operation acirc_str2op(char *s)
 {
     if (strcmp(s, "ADD") == 0) {
         return ADD;

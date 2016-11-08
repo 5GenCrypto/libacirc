@@ -47,30 +47,20 @@ typedef struct {
 extern "C" {
 #endif
 
-void acirc_init  (acirc *c);
-void acirc_clear (acirc *c);
-void acirc_destroy (acirc *c);
-void acirc_parse (acirc *c, const char *const filename);
-acirc* acirc_from_file (const char *const filename);
+void acirc_init(acirc *c);
+void acirc_clear(acirc *c);
+void acirc_parse(acirc *c, const char *const filename);
+acirc * acirc_from_file(const char *const filename);
+bool acirc_to_file(const acirc *const c, const char *const fname);
 
 // evaluation
 int acirc_eval (acirc *c, acircref ref, int *xs);
 
-int
-acirc_eval_abstract_memo(void *rop, acirc *c, acircref root, void **xs,
-                         void **ys, bool *known, void **cache,
-                         void * (*init)(void),
-                         void (*clear)(void *),
-                         int (*set)(void *, void *),
-                         int (*add)(void *, void *, void *),
-                         int (*sub)(void *, void *, void *),
-                         int (*mul)(void *, void *, void *));
-
 // run all tests
-bool acirc_ensure (acirc *c, bool verbose);
+bool acirc_ensure(acirc *c, bool verbose);
 
 // topological orderings
-size_t acirc_topological_order (acircref *topo, acirc *c, acircref ref);
+size_t acirc_topological_order(acircref *topo, acirc *c, acircref ref);
 
 typedef struct {
     int nlevels;
@@ -78,8 +68,8 @@ typedef struct {
     int *level_sizes;
 } acirc_topo_levels;
 
-acirc_topo_levels* acirc_topological_levels (acirc *c, acircref root);
-void acirc_topo_levels_destroy (acirc_topo_levels *topo);
+acirc_topo_levels* acirc_topological_levels(acirc *c, acircref root);
+void acirc_topo_levels_destroy(acirc_topo_levels *topo);
 
 // degree calculations
 size_t acirc_depth        (acirc *c, acircref ref);
@@ -100,28 +90,14 @@ void acirc_add_yinput (acirc *c, acircref ref, size_t const_id, int val);
 void acirc_add_gate   (acirc *c, acircref ref, acirc_operation op, int xref, int yref, bool is_output);
 
 // helpers
-acirc_operation acirc_str2op (char *s);
+acirc_operation acirc_str2op(char *s);
 
 #ifdef HAVE_GMP
-void acirc_eval_mpz_mod (
-    mpz_t rop,
-    acirc *c,
-    acircref root,
-    mpz_t *xs,
-    mpz_t *ys, // replace the secrets with something
-    mpz_t modulus
-);
+void acirc_eval_mpz_mod(mpz_t rop, acirc *c, acircref root, mpz_t *xs,
+                        mpz_t *ys, mpz_t modulus);
 
-void acirc_eval_mpz_mod_memo (
-    mpz_t rop,
-    acirc *c,
-    acircref root,
-    mpz_t *xs,
-    mpz_t *ys, // replace the secrets with something
-    mpz_t modulus,
-    bool *known,
-    mpz_t *cache
-);
+void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root, mpz_t *xs,
+                             mpz_t *ys, mpz_t modulus, bool *known, mpz_t *cache);
 #endif
 
 #ifdef __cplusplus
