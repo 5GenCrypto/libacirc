@@ -79,22 +79,28 @@ void acirc_clear(acirc *c)
 
 extern int yyparse(acirc *);
 extern FILE *yyin;
-void acirc_parse(acirc *c, const char *const filename)
+int acirc_parse(acirc *c, const char *const filename)
 {
     yyin = fopen(filename, "r");
     if (yyin == NULL) {
         fprintf(stderr, "[libacirc] error: could not open file \"%s\"\n", filename);
         exit(1);
     }
-    yyparse(c);
+    int ret = yyparse(c);
     fclose(yyin);
+    return ret;
 }
 
 acirc * acirc_from_file(const char *const filename)
 {
     acirc *c = acirc_malloc(sizeof(acirc));
     acirc_init(c);
-    acirc_parse(c, filename);
+    int ret = acirc_parse(c, filename);
+    if (ret == 1) {
+        acirc_clear(c);
+        free(c);
+        return NULL;
+    }
     return c;
 }
 
@@ -118,23 +124,23 @@ bool acirc_to_file(const acirc *const c, const char *const fname)
                     c->gates[i].args[0], c->gates[i].args[1]);
             break;
         case ADD:
-            fprintf(f, "%ld %sgate ADD %ld %ld\n", i,
-                    c->gates[i].is_output ? "output " : "",
+            fprintf(f, "%ld %s ADD %ld %ld\n", i,
+                    c->gates[i].is_output ? "output" : "gate",
                     c->gates[i].args[0], c->gates[i].args[1]);
             break;
         case SUB:
-            fprintf(f, "%ld %sgate SUB %ld %ld\n", i,
-                    c->gates[i].is_output ? "output " : "",
+            fprintf(f, "%ld %s SUB %ld %ld\n", i,
+                    c->gates[i].is_output ? "output" : "gate",
                     c->gates[i].args[0], c->gates[i].args[1]);
             break;
         case MUL:
-            fprintf(f, "%ld %sgate MUL %ld %ld\n", i,
-                    c->gates[i].is_output ? "output " : "",
+            fprintf(f, "%ld %s MUL %ld %ld\n", i,
+                    c->gates[i].is_output ? "output" : "gate",
                     c->gates[i].args[0], c->gates[i].args[1]);
             break;
         case ID:
-            fprintf(f, "%ld %sgate ID %ld\n", i,
-                    c->gates[i].is_output ? "output " : "",
+            fprintf(f, "%ld %s ID %ld\n", i,
+                    c->gates[i].is_output ? "output" : "gate",
                     c->gates[i].args[0]);
         }
     }
@@ -301,7 +307,6 @@ static void topo_helper(int ref, acircref *topo, bool *seen, size_t *i, acirc *c
     const acirc_operation op = c->gates[ref].op;
     switch (op) {
     case XINPUT: case YINPUT:
-        fprintf(stderr, "invalid op\n");
         return;
     case ADD: case SUB: case MUL:
         topo_helper(c->gates[ref].args[0], topo, seen, i, c);
@@ -652,7 +657,7 @@ void acirc_add_test(acirc *c, char *inpstr, char *outstr)
 
 void acirc_add_xinput(acirc *c, acircref ref, input_id id)
 {
-    /* printf("%ld input x%ld\n", ref, id); */
+    printf("%ld input x%ld\n", ref, id);
     ensure_gate_space(c, ref);
     c->ninputs += 1;
     c->nrefs   += 1;
@@ -683,12 +688,12 @@ void acirc_add_yinput(acirc *c, acircref ref, size_t id, int val)
 
 void acirc_add_gate(acirc *c, acircref ref, acirc_operation op, int xref, int yref, bool is_output)
 {
-    /* printf("%ld %sgate %s %d %d\n", ref, */
-    /*        is_output ? "output " : "", */
-    /*        op == ADD ? "ADD" */
-    /*                  : op == SUB ? "SUB" */
-    /*                              : op == MUL ? "MUL" : "ID", */
-    /*        xref, yref); */
+    printf("%ld %s %s %d %d\n", ref,
+           is_output ? "output" : "gate",
+           op == ADD ? "ADD"
+                     : op == SUB ? "SUB"
+                                 : op == MUL ? "MUL" : "ID",
+           xref, yref);
     ensure_gate_space(c, ref);
     c->ngates   += 1;
     c->nrefs    += 1;
@@ -698,6 +703,7 @@ void acirc_add_gate(acirc *c, acircref ref, acirc_operation op, int xref, int yr
     args[1] = yref;
     c->gates[ref].args = args;
     c->gates[ref].nargs = 2;
+    c->gates[ref].is_output = false;
     if (is_output) {
         c->gates[ref].is_output = true;
         if (c->noutputs >= c->_outref_alloc) {
@@ -715,7 +721,6 @@ static void ensure_gate_space(acirc *c, acircref ref)
 {
     if (ref >= c->_ref_alloc) {
         c->gates = acirc_realloc(c->gates, 2 * c->_ref_alloc * sizeof(struct args_t));
-        /* c->ops  = acirc_realloc(c->ops,  2 * c->_ref_alloc * sizeof(acirc_operation)); */
         c->_ref_alloc *= 2;
     }
 }

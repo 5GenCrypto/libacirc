@@ -31,7 +31,7 @@ unsigned long from_bitstring (char *s);
 
 prog: line prog | line
 
-line: test | xinput | yinput | gate | output
+line: test | xinput | yinput | gate1 | gate2 | output1 | output2
 
 test: TEST NUM NUM 
 { 
@@ -40,28 +40,42 @@ test: TEST NUM NUM
     free($3);
 }
 
-xinput: NUM INPUT XID 
+xinput: NUM INPUT XID
 { 
     acirc_add_xinput(c, atoi($1), $3);           
     free($1);
 }
 
-yinput: NUM INPUT YID NUM 
+yinput: NUM INPUT YID NUM
 { 
     acirc_add_yinput(c, atoi($1), $3, atoi($4)); 
     free($1); 
     free($4); 
 }
 
-gate: NUM GATE GATETYPE NUM NUM 
-{ 
+gate1: NUM GATE GATETYPE NUM
+{
+    acirc_add_gate(c, atoi($1), $3, atoi($4), -1, false);
+    free($1);
+    free($4);
+}
+
+gate2: NUM GATE GATETYPE NUM NUM
+{
     acirc_add_gate(c, atoi($1), $3, atoi($4), atoi($5), false); 
     free($1);
     free($4);
     free($5);
 }
 
-output: NUM OUTPUT GATETYPE NUM NUM 
+output1: NUM OUTPUT GATETYPE NUM
+{ 
+    acirc_add_gate(c, atoi($1), $3, atoi($4), -1, true); 
+    free($1);
+    free($4);
+}
+
+output2: NUM OUTPUT GATETYPE NUM NUM
 { 
     acirc_add_gate(c, atoi($1), $3, atoi($4), atoi($5), true); 
     free($1);

@@ -56,7 +56,7 @@ extern "C" {
 
 void acirc_init(acirc *c);
 void acirc_clear(acirc *c);
-void acirc_parse(acirc *c, const char *const filename);
+int acirc_parse(acirc *c, const char *const filename);
 acirc * acirc_from_file(const char *const filename);
 bool acirc_to_file(const acirc *const c, const char *const fname);
 

@@ -14,8 +14,8 @@ x[0-9]+     { yylval.val = atoi(yytext+1); return XID;      }
 y[0-9]+     { yylval.val = atoi(yytext+1); return YID;      } 
 TEST        {                              return TEST;     } 
 input       {                              return INPUT;    } 
-gate        {                              return GATE;     } 
-output      {                              return OUTPUT;   } 
+gate        {                              return GATE;     }
+output      {                              return OUTPUT;   }
 
 ADD|SUB|MUL|ID {
     yylval.op = acirc_str2op(yytext); 
