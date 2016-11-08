@@ -15,5 +15,6 @@ main(void)
 
     result = acirc_ensure(c, true);
     acirc_clear(c);
+    free(c);
     return !result;
 }

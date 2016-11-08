@@ -18,8 +18,16 @@ typedef enum {
     YINPUT,
     ADD,
     SUB,
-    MUL
+    MUL,
+    ID,
 } acirc_operation;
+
+struct args_t {
+    acirc_operation op;
+    acircref *args;
+    size_t nargs;
+    bool is_output;
+};
 
 typedef struct {
     size_t ninputs;
@@ -28,13 +36,12 @@ typedef struct {
     size_t nrefs;
     size_t ntests;
     size_t noutputs;
-    acirc_operation *ops;
-    acircref **args; // [nextref][2]
+    struct args_t *gates;
     acircref *outrefs;
     int *consts;
     int **testinps;
     int **testouts;
-    size_t _ref_alloc; // alloc size of args and ops
+    size_t _ref_alloc; // alloc size of gates
     size_t _test_alloc;
     size_t _outref_alloc;
     size_t _consts_alloc;

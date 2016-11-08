@@ -17,7 +17,7 @@ input       {                              return INPUT;    }
 gate        {                              return GATE;     } 
 output      {                              return OUTPUT;   } 
 
-ADD|SUB|MUL { 
+ADD|SUB|MUL|ID {
     yylval.op = acirc_str2op(yytext); 
     return GATETYPE; 
 } 
