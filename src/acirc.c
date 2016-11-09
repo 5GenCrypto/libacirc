@@ -32,7 +32,7 @@ void acirc_init(acirc *c)
     c->_outref_alloc = 2;
     c->_consts_alloc = 2;
     c->outrefs  = acirc_malloc(c->_outref_alloc * sizeof(acircref));
-    c->gates    = acirc_malloc(c->_ref_alloc    * sizeof(struct args_t));
+    c->gates    = acirc_malloc(c->_ref_alloc    * sizeof(struct acirc_args_t));
     c->testinps = acirc_malloc(c->_test_alloc   * sizeof(int*));
     c->testouts = acirc_malloc(c->_test_alloc   * sizeof(int*));
     c->consts   = acirc_malloc(c->_consts_alloc * sizeof(int));
@@ -713,7 +713,7 @@ void acirc_add_gate(acirc *c, acircref ref, acirc_operation op, int xref, int yr
 static void ensure_gate_space(acirc *c, acircref ref)
 {
     if (ref >= c->_ref_alloc) {
-        c->gates = acirc_realloc(c->gates, 2 * c->_ref_alloc * sizeof(struct args_t));
+        c->gates = acirc_realloc(c->gates, 2 * c->_ref_alloc * sizeof(struct acirc_args_t));
         c->_ref_alloc *= 2;
     }
 }
