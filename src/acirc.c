@@ -6,8 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void degree_memo_allocate (acirc *c);
-
 static void ensure_gate_space (acirc *c, acircref ref);
 static bool in_array (int x, int *ys, size_t len);
 static bool any_in_array (size_t *xs, int xlen, int *ys, size_t ylen);
@@ -39,7 +37,7 @@ void acirc_init(acirc *c)
     c->_degree_memo_allocated = false;
 }
 
-static void degree_memo_allocate(acirc *c)
+static void degree_memo_allocate(acirc *const c)
 {
     c->_degree_memo   = acirc_malloc((c->ninputs+1) * sizeof(size_t*));
     c->_degree_memoed = acirc_malloc((c->ninputs+1) * sizeof(bool*));
@@ -430,7 +428,7 @@ void acirc_topo_levels_destroy(acirc_topo_levels *topo)
 ////////////////////////////////////////////////////////////////////////////////
 // acirc info calculations
 
-static size_t acirc_depth_helper(acirc *c, acircref ref, size_t *memo, bool *seen)
+static size_t acirc_depth_helper(const acirc *const c, acircref ref, size_t *memo, bool *seen)
 {
     if (seen[ref])
         return memo[ref];
@@ -456,7 +454,7 @@ static size_t acirc_depth_helper(acirc *c, acircref ref, size_t *memo, bool *see
     return ret;
 }
 
-size_t acirc_depth(acirc *c, acircref ref)
+size_t acirc_depth(const acirc *const c, acircref ref)
 {
     size_t memo[c->nrefs];
     bool   seen[c->nrefs];
@@ -467,7 +465,7 @@ size_t acirc_depth(acirc *c, acircref ref)
     return acirc_depth_helper(c, ref, memo, seen);
 }
 
-static size_t acirc_degree_helper(acirc *c, acircref ref, size_t *memo, bool *seen)
+static size_t acirc_degree_helper(const acirc *const c, acircref ref, size_t *memo, bool *seen)
 {
     if (seen[ref])
         return memo[ref];
@@ -497,7 +495,7 @@ static size_t acirc_degree_helper(acirc *c, acircref ref, size_t *memo, bool *se
     return ret;
 }
 
-size_t acirc_degree(acirc *c, acircref ref)
+size_t acirc_degree(const acirc *const c, acircref ref)
 {
     size_t memo[c->nrefs];
     bool   seen[c->nrefs];
@@ -508,7 +506,7 @@ size_t acirc_degree(acirc *c, acircref ref)
     return acirc_degree_helper(c, ref, memo, seen);
 }
 
-size_t acirc_max_degree(acirc *c)
+size_t acirc_max_degree(const acirc *const c)
 {
     size_t memo[c->nrefs];
     bool   seen[c->nrefs];
@@ -526,7 +524,7 @@ size_t acirc_max_degree(acirc *c)
     return ret;
 }
 
-size_t acirc_var_degree(acirc *c, acircref ref, input_id id)
+size_t acirc_var_degree(acirc *const c, acircref ref, input_id id)
 {
     if (!c->_degree_memo_allocated)
         degree_memo_allocate(c);
@@ -560,7 +558,7 @@ size_t acirc_var_degree(acirc *c, acircref ref, input_id id)
     return 0;
 }
 
-size_t acirc_const_degree(acirc *c, acircref ref)
+size_t acirc_const_degree(acirc *const c, acircref ref)
 {
     if (!c->_degree_memo_allocated)
         degree_memo_allocate(c);
@@ -590,7 +588,7 @@ size_t acirc_const_degree(acirc *c, acircref ref)
     return 0;
 }
 
-size_t acirc_max_var_degree(acirc *c, input_id id)
+size_t acirc_max_var_degree(acirc *const c, input_id id)
 {
     size_t ret = 0;
     for (size_t i = 0; i < c->noutputs; i++) {
@@ -601,7 +599,7 @@ size_t acirc_max_var_degree(acirc *c, input_id id)
     return ret;
 }
 
-size_t acirc_max_const_degree(acirc *c)
+size_t acirc_max_const_degree(acirc *const c)
 {
     size_t ret = 0;
     for (size_t i = 0; i < c->noutputs; i++) {

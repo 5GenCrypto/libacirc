@@ -82,14 +82,14 @@ acirc_topo_levels* acirc_topological_levels(acirc *c, acircref root);
 void acirc_topo_levels_destroy(acirc_topo_levels *topo);
 
 // degree calculations
-size_t acirc_depth        (acirc *c, acircref ref);
-size_t acirc_degree       (acirc *c, acircref ref);
-size_t acirc_var_degree   (acirc *c, acircref ref, input_id id);
-size_t acirc_const_degree (acirc *c, acircref ref);
+size_t acirc_depth        (const acirc *const c, acircref ref);
+size_t acirc_degree       (const acirc *const c, acircref ref);
+size_t acirc_var_degree   (acirc *const c, acircref ref, input_id id);
+size_t acirc_const_degree (acirc *const c, acircref ref);
 
-size_t acirc_max_degree       (acirc *c);
-size_t acirc_max_var_degree   (acirc *c, input_id id);
-size_t acirc_max_const_degree (acirc *c);
+size_t acirc_max_degree       (const acirc *const c);
+size_t acirc_max_var_degree   (acirc *const c, input_id id);
+size_t acirc_max_const_degree (acirc *const c);
 
 size_t acirc_delta (acirc *c); // sum of all the var degrees and the const degree, maximized over outputs
 
