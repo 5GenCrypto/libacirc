@@ -305,7 +305,7 @@ static void topo_helper(int ref, acircref *topo, bool *seen, size_t *i, acirc *c
     const acirc_operation op = c->gates[ref].op;
     switch (op) {
     case XINPUT: case YINPUT:
-        return;
+        break;
     case ADD: case SUB: case MUL:
         topo_helper(c->gates[ref].args[0], topo, seen, i, c);
         topo_helper(c->gates[ref].args[1], topo, seen, i, c);
