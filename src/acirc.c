@@ -84,7 +84,7 @@ int acirc_parse(acirc *c, const char *const filename)
     yyin = fopen(filename, "r");
     if (yyin == NULL) {
         fprintf(stderr, "[libacirc] error: could not open file \"%s\"\n", filename);
-        exit(1);
+        return ACIRC_ERR;
     }
     int ret = yyparse(c);
     fclose(yyin);

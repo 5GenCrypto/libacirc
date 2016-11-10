@@ -10,6 +10,9 @@
 #include <gmp.h>
 #endif
 
+#define ACIRC_OK 0
+#define ACIRC_ERR (-1)
+
 typedef unsigned long acircref;
 typedef unsigned long input_id;
 
