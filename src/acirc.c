@@ -321,10 +321,10 @@ static void topo_helper(int ref, acircref *topo, bool *seen, size_t *i, acirc *c
 // returns the number of references in the topological order
 size_t acirc_topological_order(acircref *topo, acirc *c, acircref ref)
 {
-    bool *seen = acirc_calloc(c->_ref_alloc, sizeof(bool));
     size_t i = 0;
+    bool seen[c->_ref_alloc];
+    memset(seen, '\0', c->_ref_alloc * sizeof(bool));
     topo_helper(ref, topo, seen, &i, c);
-    free(seen);
     return i;
 }
 
@@ -360,24 +360,28 @@ static void dependencies_helper(acircref *deps, bool *seen, int *i, acirc *c, in
 
 static int dependencies(acircref *deps, acirc *c, int ref)
 {
-    bool *seen = acirc_calloc(c->nrefs, sizeof(bool));
-    int ndeps = 0;
+    int ndeps;
+    bool seen[c->nrefs];
+    memset(seen, '\0', c->nrefs * sizeof(bool));
     dependencies_helper(deps, seen, &ndeps, c, ref);
-    free(seen);
     return ndeps;
 }
 
 acirc_topo_levels * acirc_topological_levels(acirc *c, acircref root)
 {
+    size_t max_level = 0;
+    int level_alloc[c->nrefs];
+    acircref topo_list[c->nrefs];
+    acircref deps[2 * c->nrefs];
+
     acirc_topo_levels *topo = acirc_malloc(sizeof(acirc_topo_levels));
 
     topo->levels      = acirc_malloc(c->nrefs * sizeof(acircref));
     topo->level_sizes = acirc_calloc(c->nrefs, sizeof(int));
-    int *level_alloc  = acirc_calloc(c->nrefs, sizeof(int));
-    acircref *topo_list = acirc_calloc(c->nrefs, sizeof(acircref));
-    acircref *deps      = acirc_malloc(2 * c->nrefs * sizeof(acircref));
 
-    size_t max_level = 0;
+    memset(level_alloc, '\0', c->nrefs * sizeof(int));
+    memset(topo_list, '\0', c->nrefs * sizeof(acircref));
+
     acirc_topological_order(topo_list, c, root);
 
     for (size_t i = 0; i < c->nrefs; i++) {
@@ -410,9 +414,6 @@ acirc_topo_levels * acirc_topological_levels(acirc *c, acircref root)
         }
     }
     topo->nlevels = max_level + 1;
-    free(topo_list);
-    free(deps);
-    free(level_alloc);
     return topo;
 }
 
