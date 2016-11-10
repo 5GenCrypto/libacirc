@@ -166,29 +166,17 @@ int acirc_eval(acirc *c, acircref root, int *xs)
             vals[ref] = c->gates[ref].args[1];
             break;
         case ADD:
-            vals[ref] = 0;
-            for (size_t j = 0; j < c->gates[ref].nargs; ++j) {
-                vals[ref] += vals[c->gates[ref].args[j]];
-            }
+            vals[ref] = vals[c->gates[ref].args[0]] + vals[c->gates[ref].args[1]];
             break;
         case SUB:
-            vals[ref] = c->gates[ref].args[0];
-            for (size_t j = 1; j < c->gates[ref].nargs; ++j) {
-                vals[ref] -= vals[c->gates[ref].args[j]];
-            }
+            vals[ref] = vals[c->gates[ref].args[0]] - vals[c->gates[ref].args[1]];
             break;
         case MUL:
-            vals[ref] = 1;
-            for (size_t j = 0; j < c->gates[ref].nargs; ++j) {
-                vals[ref] *= vals[c->gates[ref].args[j]];
-            }
+            vals[ref] = vals[c->gates[ref].args[0]] * vals[c->gates[ref].args[1]];
             break;
         case ID:
             vals[ref] = vals[c->gates[ref].args[0]];
             break;
-        default:
-            assert(false);
-            return -1;
         }
     }
     return vals[root];
@@ -310,34 +298,33 @@ bool acirc_ensure(acirc *c, bool verbose)
 ////////////////////////////////////////////////////////////////////////////////
 // acirc topological ordering
 
-static void topo_helper(int ref, acircref *topo, bool *seen, size_t *idx, acirc *c)
+static void topo_helper(int ref, acircref *topo, bool *seen, size_t *i, acirc *c)
 {
     if (seen[ref])
         return;
     const acirc_operation op = c->gates[ref].op;
     switch (op) {
     case XINPUT: case YINPUT:
-        break;
+        return;
     case ADD: case SUB: case MUL:
-        for (size_t i = 0; i < c->gates[ref].nargs; ++i) {
-            topo_helper(c->gates[ref].args[i], topo, seen, idx, c);
-        }
+        topo_helper(c->gates[ref].args[0], topo, seen, i, c);
+        topo_helper(c->gates[ref].args[1], topo, seen, i, c);
         break;
     case ID:
-        topo_helper(c->gates[ref].args[0], topo, seen, idx, c);
+        topo_helper(c->gates[ref].args[0], topo, seen, i, c);
         break;
     }
-    topo[(*idx)++] = ref;
+    topo[(*i)++] = ref;
     seen[ref]    = 1;
 }
 
 // returns the number of references in the topological order
 size_t acirc_topological_order(acircref *topo, acirc *c, acircref ref)
 {
+    bool *seen = acirc_calloc(c->_ref_alloc, sizeof(bool));
     size_t i = 0;
-    bool seen[c->_ref_alloc];
-    memset(seen, '\0', c->_ref_alloc * sizeof(bool));
     topo_helper(ref, topo, seen, &i, c);
+    free(seen);
     return i;
 }
 
