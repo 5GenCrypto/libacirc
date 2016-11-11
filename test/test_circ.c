@@ -10,9 +10,9 @@ main(void)
     acirc *c;
     bool result;
 
-    c = acirc_from_file("add.acirc");
+    c = acirc_from_file("test_circ.acirc");
     if (c == NULL)
-        return 0;
+        return 1;
 
     result = acirc_ensure(c, true);
     acirc_clear(c);

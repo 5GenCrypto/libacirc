@@ -90,6 +90,8 @@ size_t acirc_const_degree (acirc *const c, acircref ref);
 size_t acirc_max_degree       (const acirc *const c);
 size_t acirc_max_var_degree   (acirc *const c, input_id id);
 size_t acirc_max_const_degree (acirc *const c);
+/* computes the degree if all ops result in an additive increase */
+size_t acirc_max_total_degree(acirc *c);
 
 size_t acirc_delta (acirc *c); // sum of all the var degrees and the const degree, maximized over outputs
 

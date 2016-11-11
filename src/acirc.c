@@ -39,14 +39,14 @@ void acirc_init(acirc *c)
 
 static void degree_memo_allocate(acirc *const c)
 {
-    c->_degree_memo   = acirc_malloc((c->ninputs+1) * sizeof(size_t*));
-    c->_degree_memoed = acirc_malloc((c->ninputs+1) * sizeof(bool*));
+    c->_degree_memo   = acirc_calloc(c->ninputs+1, sizeof(size_t *));
+    c->_degree_memoed = acirc_calloc(c->ninputs+1, sizeof(bool *));
     for (size_t i = 0; i < c->ninputs+1; i++) {
-        c->_degree_memo[i]   = acirc_malloc(c->nrefs * sizeof(size_t));
-        c->_degree_memoed[i] = acirc_malloc(c->nrefs * sizeof(bool));
-        for (size_t j = 0; j < c->nrefs; j++) {
-            c->_degree_memoed[i][j] = false;
-        }
+        c->_degree_memo[i]   = acirc_calloc(c->nrefs, sizeof(size_t));
+        c->_degree_memoed[i] = acirc_calloc(c->nrefs, sizeof(bool));
+        /* for (size_t j = 0; j < c->nrefs; j++) { */
+        /*     c->_degree_memoed[i][j] = false; */
+        /* } */
     }
     c->_degree_memo_allocated = true;
 }
@@ -432,9 +432,8 @@ static size_t acirc_depth_helper(const acirc *const c, acircref ref, size_t *mem
 {
     if (seen[ref])
         return memo[ref];
-    const acirc_operation op = c->gates[ref].op;
     size_t ret = 0;
-    switch (op) {
+    switch (c->gates[ref].op) {
     case XINPUT: case YINPUT:
         ret = 0;
         break;
@@ -447,6 +446,8 @@ static size_t acirc_depth_helper(const acirc *const c, acircref ref, size_t *mem
     case ID:
         ret = acirc_depth_helper(c, c->gates[ref].args[0], memo, seen);
         break;
+    default:
+        abort();
     }
 
     seen[ref] = true;
@@ -458,10 +459,7 @@ size_t acirc_depth(const acirc *const c, acircref ref)
 {
     size_t memo[c->nrefs];
     bool   seen[c->nrefs];
-
-    for (size_t i = 0; i < c->nrefs; i++)
-        seen[i] = false;
-
+    memset(seen, '\0', sizeof seen);
     return acirc_depth_helper(c, ref, memo, seen);
 }
 
@@ -620,6 +618,46 @@ size_t acirc_delta(acirc *c)
     return delta;
 }
 
+static size_t acirc_total_degree_helper(acirc *c, acircref ref)
+{
+    if (c->_degree_memoed[c->ninputs][ref])
+        return c->_degree_memo[c->ninputs][ref];
+
+    switch (c->gates[ref].op) {
+    case XINPUT:
+    case YINPUT:
+        return 1;
+    case ADD: case SUB: case MUL: {
+        size_t res = 0;
+        for (size_t i = 0; i < c->gates[ref].nargs; ++i) {
+            res += acirc_total_degree_helper(c, c->gates[ref].args[i]);
+        }
+        c->_degree_memo[c->ninputs][ref] = res;
+        c->_degree_memoed[c->ninputs][ref] = true;
+        return res;
+    }
+    case ID:
+        return acirc_total_degree_helper(c, c->gates[ref].args[0]);
+    }
+    abort();
+}
+
+size_t acirc_max_total_degree(acirc *c)
+{
+    if (!c->_degree_memo_allocated)
+        degree_memo_allocate(c);
+    /* reset memoed info */
+    memset(c->_degree_memoed[c->ninputs], '\0', c->nrefs * sizeof(bool));
+
+    size_t ret = 0;
+    for (size_t i = 0; i < c->noutputs; ++i) {
+        size_t tmp = acirc_total_degree_helper(c, c->outrefs[i]);
+        if (tmp > ret)
+            ret = tmp;
+    }
+    return ret;
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // acirc creation
 
@@ -762,7 +800,7 @@ static void* acirc_calloc(size_t nmemb, size_t size)
     void *ptr = calloc(nmemb, size);
     if (ptr == NULL) {
         fprintf(stderr, "[acirc_calloc] couldn't allocate %lu bytes!\n", nmemb * size);
-        assert(false);
+        abort();
     }
     return ptr;
 }
@@ -772,7 +810,7 @@ static void* acirc_malloc(size_t size)
     void *ptr = malloc(size);
     if (ptr == NULL) {
         fprintf(stderr, "[acirc_malloc] couldn't allocate %lu bytes!\n", size);
-        assert(false);
+        abort();
     }
     return ptr;
 }
@@ -782,7 +820,7 @@ static void* acirc_realloc(void *ptr, size_t size)
     void *ptr_ = realloc(ptr, size);
     if (ptr_ == NULL) {
         fprintf(stderr, "[acirc_realloc] couldn't reallocate %lu bytes!\n", size);
-        assert(false);
+        abort();
     }
     return ptr_;
 }
