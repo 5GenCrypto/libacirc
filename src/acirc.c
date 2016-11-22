@@ -44,9 +44,6 @@ static void degree_memo_allocate(acirc *const c)
     for (size_t i = 0; i < c->ninputs+1; i++) {
         c->_degree_memo[i]   = acirc_calloc(c->nrefs, sizeof(size_t));
         c->_degree_memoed[i] = acirc_calloc(c->nrefs, sizeof(bool));
-        /* for (size_t j = 0; j < c->nrefs; j++) { */
-        /*     c->_degree_memoed[i][j] = false; */
-        /* } */
     }
     c->_degree_memo_allocated = true;
 }
@@ -157,25 +154,35 @@ int acirc_eval(acirc *c, acircref root, int *xs)
 
     for (size_t i = 0; i < n; i++) {
         const acircref ref = topo[i];
-        const acirc_operation op = c->gates[ref].op;
-        switch (op) {
+        const struct acirc_args_t *gate = &c->gates[ref];
+        switch (gate->op) {
         case XINPUT:
-            vals[ref] = xs[c->gates[ref].args[0]];
+            vals[ref] = xs[gate->args[0]];
             break;
         case YINPUT:
-            vals[ref] = c->gates[ref].args[1];
+            vals[ref] = gate->args[1];
             break;
         case ADD:
-            vals[ref] = vals[c->gates[ref].args[0]] + vals[c->gates[ref].args[1]];
+            vals[ref] = 0;
+            for (size_t j = 0; j < gate->nargs; ++j) {
+                vals[ref] += vals[gate->args[j]];
+            }
             break;
         case SUB:
-            vals[ref] = vals[c->gates[ref].args[0]] - vals[c->gates[ref].args[1]];
+            assert(gate->nargs >= 1);
+            vals[ref] = vals[gate->args[0]];
+            for (size_t j = 1; j < gate->nargs; ++j) {
+                vals[ref] -= vals[gate->args[j]];
+            }
             break;
         case MUL:
-            vals[ref] = vals[c->gates[ref].args[0]] * vals[c->gates[ref].args[1]];
+            vals[ref] = 1;
+            for (size_t j = 0; j < gate->nargs; ++j) {
+                vals[ref] *= vals[gate->args[j]];
+            }
             break;
         case ID:
-            vals[ref] = vals[c->gates[ref].args[0]];
+            vals[ref] = vals[gate->args[0]];
             break;
         }
     }
@@ -183,35 +190,51 @@ int acirc_eval(acirc *c, acircref root, int *xs)
 }
 
 #ifdef HAVE_GMP
-void acirc_eval_mpz_mod (mpz_t rop, acirc *c, acircref root, mpz_t *xs,
-                         mpz_t *ys, mpz_t modulus)
+void acirc_eval_mpz_mod(mpz_t rop, acirc *c, acircref root, mpz_t *xs,
+                        mpz_t *ys, mpz_t modulus)
 {
-    const acirc_operation op = c->gates[root].op;
+    /* TODO: this should just call acirc_eval_mpz_mod_memo */
+    const struct acirc_args_t *gate = &c->gates[root];
+    const acirc_operation op = gate->op;
     switch (op) {
     case XINPUT:
-        mpz_set(rop, xs[c->gates[root].args[0]]);
+        mpz_set(rop, xs[gate->args[0]]);
         break;
     case YINPUT:
-        mpz_set(rop, ys[c->gates[root].args[0]]);
+        mpz_set(rop, ys[gate->args[0]]);
         break;
     case ADD: case SUB: case MUL: {
-        mpz_t xres, yres;
-        mpz_inits(xres, yres, NULL);
-        acirc_eval_mpz_mod(xres, c, c->gates[root].args[0], xs, ys, modulus);
-        acirc_eval_mpz_mod(yres, c, c->gates[root].args[1], xs, ys, modulus);
-        if (op == ADD) {
-            mpz_add(rop, xres, yres);
-        } else if (op == SUB) {
-            mpz_sub(rop, xres, yres);
-        } else if (op == MUL) {
-            mpz_mul(rop, xres, yres);
+        mpz_t zs[gate->nargs];
+        for (size_t i = 0; i < gate->nargs; ++i) {
+            mpz_init(zs[i]);
+            acirc_eval_mpz_mod(zs[i], c, gate->args[i], xs, ys, modulus);
         }
-        mpz_mod(rop, rop, modulus);
-        mpz_clears(xres, yres, NULL);
+        if (op == ADD) {
+            mpz_set_ui(rop, 0);
+            for (size_t i = 0; i < gate->nargs; ++i) {
+                mpz_add(rop, rop, zs[i]);
+                mpz_mod(rop, rop, modulus);
+            }
+        } else if (op == SUB) {
+            mpz_set(rop, zs[0]);
+            for (size_t i = 1; i < gate->nargs; ++i) {
+                mpz_sub(rop, rop, zs[i]);
+                mpz_mod(rop, rop, modulus);
+            }
+        } else if (op == MUL) {
+            mpz_set_ui(rop, 1);
+            for (size_t i = 0; i < gate->nargs; ++i) {
+                mpz_mul(rop, rop, zs[i]);
+                mpz_mod(rop, rop, modulus);
+            }
+        }
+        for (size_t i = 0; i < gate->nargs; ++i) {
+            mpz_clear(zs[i]);
+        }
         break;
     }
     case ID:
-        acirc_eval_mpz_mod(rop, c, c->gates[root].args[0], xs, ys, modulus);
+        acirc_eval_mpz_mod(rop, c, gate->args[0], xs, ys, modulus);
         break;
     }
 }
@@ -224,28 +247,43 @@ void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root, mpz_t *xs,
         return;
     }
 
-    const acirc_operation op = c->gates[root].op;
+    const struct acirc_args_t *gate = &c->gates[root];
+    const acirc_operation op = gate->op;
     switch (op) {
     case XINPUT:
-        mpz_set(rop, xs[c->gates[root].args[0]]);
+        mpz_set(rop, xs[gate->args[0]]);
         break;
     case YINPUT:
-        mpz_set(rop, ys[c->gates[root].args[0]]);
+        mpz_set(rop, ys[gate->args[0]]);
         break;
     case ADD: case SUB: case MUL: {
-        mpz_t xres, yres;
-        mpz_inits(xres, yres, NULL);
-        acirc_eval_mpz_mod_memo(xres, c, c->gates[root].args[0], xs, ys, modulus, known, cache);
-        acirc_eval_mpz_mod_memo(yres, c, c->gates[root].args[1], xs, ys, modulus, known, cache);
-        if (op == ADD) {
-            mpz_add(rop, xres, yres);
-        } else if (op == SUB) {
-            mpz_sub(rop, xres, yres);
-        } else if (op == MUL) {
-            mpz_mul(rop, xres, yres);
+        mpz_t zs[gate->nargs];
+        for (size_t i = 0; i < gate->nargs; ++i) {
+            mpz_init(zs[i]);
+            acirc_eval_mpz_mod(zs[i], c, gate->args[i], xs, ys, modulus);
         }
-        mpz_mod(rop, rop, modulus);
-        mpz_clears(xres, yres, NULL);
+        if (op == ADD) {
+            mpz_set_ui(rop, 0);
+            for (size_t i = 0; i < gate->nargs; ++i) {
+                mpz_add(rop, rop, zs[i]);
+                mpz_mod(rop, rop, modulus);
+            }
+        } else if (op == SUB) {
+            mpz_set(rop, zs[0]);
+            for (size_t i = 1; i < gate->nargs; ++i) {
+                mpz_sub(rop, rop, zs[i]);
+                mpz_mod(rop, rop, modulus);
+            }
+        } else if (op == MUL) {
+            mpz_set_ui(rop, 1);
+            for (size_t i = 0; i < gate->nargs; ++i) {
+                mpz_mul(rop, rop, zs[i]);
+                mpz_mod(rop, rop, modulus);
+            }
+        }
+        for (size_t i = 0; i < gate->nargs; ++i) {
+            mpz_clear(zs[i]);
+        }
 
         mpz_init(cache[root]);
         mpz_set(cache[root], rop);
@@ -253,7 +291,7 @@ void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root, mpz_t *xs,
         break;
     }
     case ID:
-        acirc_eval_mpz_mod_memo(rop, c, c->gates[root].args[0], xs, ys, modulus, known, cache);
+        acirc_eval_mpz_mod(rop, c, gate->args[0], xs, ys, modulus);
         break;
     }
 }
@@ -261,15 +299,14 @@ void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root, mpz_t *xs,
 
 bool acirc_ensure(acirc *c, bool verbose)
 {
-    if (verbose)
-        puts("running acirc tests in plaintext...");
-    int *res = acirc_malloc(c->noutputs * sizeof(int));
+    int res[c->noutputs];
     bool ok  = true;
 
+    if (verbose)
+        puts("running acirc tests in plaintext...");
+
     for (size_t test_num = 0; test_num < c->ntests; test_num++) {
-
         bool test_ok = true;
-
         for (size_t i = 0; i < c->noutputs; i++) {
             res[i] = acirc_eval(c, c->outrefs[i], c->testinps[test_num]);
             test_ok = test_ok && ((res[i] == 1) == (c->testouts[test_num][i] == 1));
@@ -291,7 +328,6 @@ bool acirc_ensure(acirc *c, bool verbose)
 
         ok = ok && test_ok;
     }
-    free(res);
     return ok;
 }
 
@@ -302,29 +338,30 @@ static void topo_helper(int ref, acircref *topo, bool *seen, size_t *i, acirc *c
 {
     if (seen[ref])
         return;
-    const acirc_operation op = c->gates[ref].op;
-    switch (op) {
+    const struct acirc_args_t *gate = &c->gates[ref];
+    switch (gate->op) {
     case XINPUT: case YINPUT:
         break;
     case ADD: case SUB: case MUL:
-        topo_helper(c->gates[ref].args[0], topo, seen, i, c);
-        topo_helper(c->gates[ref].args[1], topo, seen, i, c);
+        for (size_t j = 0; j < gate->nargs; ++j) {
+            topo_helper(gate->args[j], topo, seen, i, c);
+        }
         break;
     case ID:
-        topo_helper(c->gates[ref].args[0], topo, seen, i, c);
+        topo_helper(gate->args[0], topo, seen, i, c);
         break;
     }
     topo[(*i)++] = ref;
-    seen[ref]    = 1;
+    seen[ref]    = true;
 }
 
 // returns the number of references in the topological order
 size_t acirc_topological_order(acircref *topo, acirc *c, acircref ref)
 {
-    bool *seen = acirc_calloc(c->_ref_alloc, sizeof(bool));
+    bool seen[c->_ref_alloc];
     size_t i = 0;
+    memset(seen, '\0', sizeof seen);
     topo_helper(ref, topo, seen, &i, c);
-    free(seen);
     return i;
 }
 
@@ -334,36 +371,33 @@ static void dependencies_helper(acircref *deps, bool *seen, int *i, acirc *c, in
 {
     if (seen[ref])
         return;
-    const acirc_operation op = c->gates[ref].op;
-    switch (op) {
+    const struct acirc_args_t *gate = &c->gates[ref];
+    switch (gate->op) {
     case XINPUT: case YINPUT:
         break;
-    case ADD: case SUB: case MUL: {
-        int xarg = c->gates[ref].args[0];
-        int yarg = c->gates[ref].args[1];
-        deps[(*i)++] = xarg;
-        deps[(*i)++] = yarg;
-        dependencies_helper(deps, seen, i, c, xarg);
-        dependencies_helper(deps, seen, i, c, yarg);
-        seen[ref] = 1;
+    case ADD: case SUB: case MUL:
+        for (size_t j = 0; j < gate->nargs; ++j) {
+            deps[(*i)++] = gate->args[j];
+        }
+        for (size_t j = 0; j < gate->nargs; ++j) {
+            dependencies_helper(deps, seen, i, c, gate->args[j]);
+        }
+        seen[ref] = true;
         break;
-    }
-    case ID: {
-        int xarg = c->gates[ref].args[0];
-        deps[(*i)++] = xarg;
-        dependencies_helper(deps, seen, i, c, xarg);
-        seen[ref] = 1;
+    case ID:
+        deps[(*i)++] = gate->args[0];
+        dependencies_helper(deps, seen, i, c, gate->args[0]);
+        seen[ref] = true;
         break;
-    }
     }
 }
 
 static int dependencies(acircref *deps, acirc *c, int ref)
 {
-    bool *seen = acirc_calloc(c->nrefs, sizeof(bool));
+    bool seen[c->nrefs];
     int ndeps = 0;
+    memset(seen, '\0', sizeof seen);
     dependencies_helper(deps, seen, &ndeps, c, ref);
-    free(seen);
     return ndeps;
 }
 
@@ -432,19 +466,22 @@ static size_t acirc_depth_helper(const acirc *const c, acircref ref, size_t *mem
 {
     if (seen[ref])
         return memo[ref];
+
+    const struct acirc_args_t *gate = &c->gates[ref];
     size_t ret = 0;
-    switch (c->gates[ref].op) {
+
+    switch (gate->op) {
     case XINPUT: case YINPUT:
         ret = 0;
         break;
-    case ADD: case SUB: case MUL: {
-        size_t xres = acirc_depth_helper(c, c->gates[ref].args[0], memo, seen);
-        size_t yres = acirc_depth_helper(c, c->gates[ref].args[1], memo, seen);
-        ret = max(xres, yres);
+    case ADD: case SUB: case MUL:
+        for (size_t i = 0; i < gate->nargs; ++i) {
+            size_t tmp = acirc_depth_helper(c, gate->args[i], memo, seen);
+            ret = ret > tmp ? ret : tmp;
+        }
         break;
-    }
     case ID:
-        ret = acirc_depth_helper(c, c->gates[ref].args[0], memo, seen);
+        ret = acirc_depth_helper(c, gate->args[0], memo, seen);
         break;
     default:
         abort();
@@ -463,28 +500,28 @@ size_t acirc_depth(const acirc *const c, acircref ref)
     return acirc_depth_helper(c, ref, memo, seen);
 }
 
-static size_t acirc_degree_helper(const acirc *const c, acircref ref, size_t *memo, bool *seen)
+static size_t acirc_degree_helper(const acirc *const c, acircref ref, size_t *const memo, bool *const seen)
 {
     if (seen[ref])
         return memo[ref];
 
     size_t ret = 0;
-    const acirc_operation op = c->gates[ref].op;
-    switch (op) {
+    const struct acirc_args_t *gate = &c->gates[ref];
+    switch (gate->op) {
     case XINPUT: case YINPUT:
         ret = 1;
         break;
-    case ADD: case SUB: case MUL: {
-        size_t xres = acirc_degree_helper(c, c->gates[ref].args[0], memo, seen);
-        size_t yres = acirc_degree_helper(c, c->gates[ref].args[1], memo, seen);
-        if (op == MUL)
-            ret = xres + yres;
-        else
-            ret = max(xres, yres);
+    case ADD: case SUB: case MUL:
+        for (size_t i = 0; i < gate->nargs; ++i) {
+            size_t tmp = acirc_depth_helper(c, gate->args[i], memo, seen);
+            if (gate->op == MUL)
+                ret += tmp;
+            else
+                ret = ret > tmp ? ret : tmp;
+        }
         break;
-    }
     case ID:
-        ret = acirc_degree_helper(c, c->gates[ref].args[0], memo, seen);
+        ret = acirc_degree_helper(c, gate->args[0], memo, seen);
         break;
     }
 
@@ -497,10 +534,7 @@ size_t acirc_degree(const acirc *const c, acircref ref)
 {
     size_t memo[c->nrefs];
     bool   seen[c->nrefs];
-
-    for (size_t i = 0; i < c->nrefs; i++)
-        seen[i] = false;
-
+    memset(seen, '\0', sizeof seen);
     return acirc_degree_helper(c, ref, memo, seen);
 }
 
@@ -508,10 +542,7 @@ size_t acirc_max_degree(const acirc *const c)
 {
     size_t memo[c->nrefs];
     bool   seen[c->nrefs];
-
-    for (size_t i = 0; i < c->nrefs; i++)
-        seen[i] = false;
-
+    memset(seen, '\0', sizeof seen);
     size_t ret = 0;
     for (size_t i = 0; i < c->noutputs; i++) {
         size_t tmp = acirc_degree_helper(c, c->outrefs[i], memo, seen);
@@ -529,24 +560,29 @@ size_t acirc_var_degree(acirc *const c, acircref ref, input_id id)
     if (c->_degree_memoed[id][ref])
         return c->_degree_memo[id][ref];
 
-    const acirc_operation op = c->gates[ref].op;
-    switch (op) {
+    const struct acirc_args_t *const gate = &c->gates[ref];
+    switch (gate->op) {
     case XINPUT:
-        return (c->gates[ref].args[0] == id) ? 1 : 0;
+        return (gate->args[0] == id) ? 1 : 0;
     case YINPUT:
         return 0;
     case ADD: case SUB: case MUL: {
-        size_t xres = acirc_var_degree(c, c->gates[ref].args[0], id);
-        size_t yres = acirc_var_degree(c, c->gates[ref].args[1], id);
-        if (op == MUL)
-            return xres + yres;
-        size_t res = max(xres, yres); // else op == ADD || op == SUB
-        c->_degree_memo[id][ref] = res;
-        c->_degree_memoed[id][ref] = true;
+        size_t res = 0;
+        for (size_t i = 0; i < gate->nargs; ++i) {
+            size_t tmp = acirc_var_degree(c, gate->args[i], id);
+            if (gate->op == MUL)
+                res += tmp;
+            else
+                res = res > tmp ? res : tmp;
+        }
+        if (gate->op != MUL) {
+            c->_degree_memo[id][ref] = res;
+            c->_degree_memoed[id][ref] = true;
+        }
         return res;
     }
     case ID: {
-        size_t res = acirc_var_degree(c, c->gates[ref].args[0], id);
+        size_t res = acirc_var_degree(c, gate->args[0], id);
         c->_degree_memo[id][ref] = res;
         c->_degree_memoed[id][ref] = true;
         return res;
@@ -563,27 +599,32 @@ size_t acirc_const_degree(acirc *const c, acircref ref)
     if (c->_degree_memoed[c->ninputs][ref])
         return c->_degree_memo[c->ninputs][ref];
 
-    const acirc_operation op = c->gates[ref].op;
-    switch (op) {
+    const struct acirc_args_t *const gate = &c->gates[ref];
+    switch (gate->op) {
     case XINPUT:
         return 0;
     case YINPUT:
         return 1;
     case ADD: case SUB: case MUL: {
-        size_t xres = acirc_const_degree(c, c->gates[ref].args[0]);
-        size_t yres = acirc_const_degree(c, c->gates[ref].args[1]);
-        if (op == MUL)
-            return xres + yres;
-        size_t res = max(xres, yres); // else op == ADD || op == SUB
-        c->_degree_memo[c->ninputs][ref] = res;
-        c->_degree_memoed[c->ninputs][ref] = true;
+        size_t res = 0;
+        for (size_t i = 0; i < gate->nargs; ++i) {
+            size_t tmp = acirc_const_degree(c, gate->args[i]);
+            if (gate->op == MUL)
+                res += tmp;
+            else
+                res = res > tmp ? res : tmp;
+        }
+        if (gate->op != MUL) {
+            c->_degree_memo[c->ninputs][ref] = res;
+            c->_degree_memoed[c->ninputs][ref] = true;
+        }
         return res;
     }
     case ID:
-        return acirc_const_degree(c, c->gates[ref].args[0]);
+        return acirc_const_degree(c, gate->args[0]);
+    default:
+        abort();
     }
-    assert(false);
-    return 0;
 }
 
 size_t acirc_max_var_degree(acirc *const c, input_id id)
@@ -623,23 +664,25 @@ static size_t acirc_total_degree_helper(acirc *c, acircref ref)
     if (c->_degree_memoed[c->ninputs][ref])
         return c->_degree_memo[c->ninputs][ref];
 
-    switch (c->gates[ref].op) {
+    const struct acirc_args_t *const gate = &c->gates[ref];
+    switch (gate->op) {
     case XINPUT:
     case YINPUT:
         return 1;
     case ADD: case SUB: case MUL: {
         size_t res = 0;
-        for (size_t i = 0; i < c->gates[ref].nargs; ++i) {
-            res += acirc_total_degree_helper(c, c->gates[ref].args[i]);
+        for (size_t i = 0; i < gate->nargs; ++i) {
+            res += acirc_total_degree_helper(c, gate->args[i]);
         }
         c->_degree_memo[c->ninputs][ref] = res;
         c->_degree_memoed[c->ninputs][ref] = true;
         return res;
     }
     case ID:
-        return acirc_total_degree_helper(c, c->gates[ref].args[0]);
+        return acirc_total_degree_helper(c, gate->args[0]);
+    default:
+        abort();
     }
-    abort();
 }
 
 size_t acirc_max_total_degree(acirc *c)
@@ -766,8 +809,8 @@ acirc_operation acirc_str2op(char *s)
         return ID;
     } else {
         fprintf(stderr, "unknown op '%s'\n", s);
+        abort();
     }
-    exit(EXIT_FAILURE);
 }
 
 static bool in_array(int x, int *ys, size_t len) {
