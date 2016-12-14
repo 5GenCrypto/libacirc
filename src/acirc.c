@@ -309,7 +309,7 @@ bool acirc_ensure(acirc *c, bool verbose)
         bool test_ok = true;
         for (size_t i = 0; i < c->noutputs; i++) {
             res[i] = acirc_eval(c, c->outrefs[i], c->testinps[test_num]);
-            test_ok = test_ok && ((res[i] == 1) == (c->testouts[test_num][i] == 1));
+            test_ok = test_ok && ((res[i] != 0) == (c->testouts[test_num][i] == 1));
         }
 
         if (verbose) {
@@ -649,8 +649,7 @@ size_t acirc_max_const_degree(acirc *const c)
     return ret;
 }
 
-// get the sum of the var degrees, maximized over the output bits
-size_t acirc_delta(acirc *c)
+size_t acirc_delta(acirc *const c)
 {
     size_t delta = acirc_max_const_degree(c);
     for (size_t i = 0; i < c->ninputs; i++) {
@@ -659,7 +658,7 @@ size_t acirc_delta(acirc *c)
     return delta;
 }
 
-static size_t acirc_total_degree_helper(acirc *c, acircref ref)
+static size_t acirc_total_degree_helper(acirc *const c, acircref ref)
 {
     if (c->_degree_memoed[c->ninputs][ref])
         return c->_degree_memo[c->ninputs][ref];
@@ -685,7 +684,7 @@ static size_t acirc_total_degree_helper(acirc *c, acircref ref)
     }
 }
 
-size_t acirc_max_total_degree(acirc *c)
+size_t acirc_max_total_degree(acirc *const c)
 {
     if (!c->_degree_memo_allocated)
         degree_memo_allocate(c);
@@ -832,7 +831,7 @@ static bool any_in_array(size_t *xs, int xlen, int *ys, size_t ylen) {
 static void array_printstring_rev(int *xs, size_t n)
 {
     for (int i = n-1; i >= 0; i--)
-        printf("%d", xs[i] == 1);
+        printf("%d", xs[i] != 0);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
