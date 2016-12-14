@@ -190,8 +190,8 @@ int acirc_eval(acirc *c, acircref root, int *xs)
 }
 
 #ifdef HAVE_GMP
-void acirc_eval_mpz_mod(mpz_t rop, acirc *c, acircref root, mpz_t *xs,
-                        mpz_t *ys, mpz_t modulus)
+void acirc_eval_mpz_mod(mpz_t rop, acirc *const c, acircref root, mpz_t *xs,
+                        mpz_t *ys, const mpz_t modulus)
 {
     /* TODO: this should just call acirc_eval_mpz_mod_memo */
     const struct acirc_args_t *gate = &c->gates[root];
@@ -239,8 +239,9 @@ void acirc_eval_mpz_mod(mpz_t rop, acirc *c, acircref root, mpz_t *xs,
     }
 }
 
-void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root, mpz_t *xs,
-                             mpz_t *ys, mpz_t modulus, bool *known, mpz_t *cache)
+void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *const c, acircref root, mpz_t *xs,
+                             mpz_t *ys, const mpz_t modulus, bool *known,
+                             mpz_t *cache)
 {
     if (known[root]) {
         mpz_set(rop, cache[root]);

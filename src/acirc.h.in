@@ -91,9 +91,9 @@ size_t acirc_max_degree       (const acirc *const c);
 size_t acirc_max_var_degree   (acirc *const c, input_id id);
 size_t acirc_max_const_degree (acirc *const c);
 /* computes the degree if all ops result in an additive increase */
-size_t acirc_max_total_degree(acirc *c);
+size_t acirc_max_total_degree(acirc *const c);
 
-size_t acirc_delta (acirc *c); // sum of all the var degrees and the const degree, maximized over outputs
+size_t acirc_delta (acirc *const c);
 
 // construction
 void acirc_add_test   (acirc *c, char *inp, char *out);
@@ -105,11 +105,12 @@ void acirc_add_gate   (acirc *c, acircref ref, acirc_operation op, int xref, int
 acirc_operation acirc_str2op(char *s);
 
 #ifdef HAVE_GMP
-void acirc_eval_mpz_mod(mpz_t rop, acirc *c, acircref root, mpz_t *xs,
-                        mpz_t *ys, mpz_t modulus);
+void acirc_eval_mpz_mod(mpz_t rop, acirc *const c, acircref root, mpz_t *xs,
+                        mpz_t *ys, const mpz_t modulus);
 
-void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root, mpz_t *xs,
-                             mpz_t *ys, mpz_t modulus, bool *known, mpz_t *cache);
+void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *const c, acircref root, mpz_t *xs,
+                             mpz_t *ys, const mpz_t modulus, bool *known,
+                             mpz_t *cache);
 #endif
 
 #ifdef __cplusplus
