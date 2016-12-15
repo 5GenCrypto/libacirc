@@ -9,21 +9,20 @@
 
 %%
 
-[0-9]+      { yylval.str = strdup(yytext); return STR;     }
-x[0-9]+     { yylval.val = atoi(yytext+1); return XID;      }
-y[0-9]+     { yylval.val = atoi(yytext+1); return YID;      }
-TEST        { return TEST; }
-input       {                              return INPUT;    }
-gate        {                              return GATE;     }
-output      {                              return OUTPUT;   }
+[0-9]+      { yylval.str = strdup(yytext); return STR; }
+
+input       { return INPUT; }
+plaintext   { return PLAINTEXT; }
+const       { return CONST; }
+output      { return OUTPUT; }
+
+:test       { return COLON_TEST; }
 
 ADD|SUB|MUL|ID {
     yylval.op = acirc_str2op(yytext); 
     return GATETYPE; 
 } 
 
-[\n]     { return NEWLINE; }
-
-:.*      { }
+\n       { return NEWLINE; }
 [ \t]+   { }
-#        { }
+#.*\n    { }

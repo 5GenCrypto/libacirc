@@ -16,24 +16,21 @@
 typedef size_t acircref;
 typedef size_t input_id;
 
-typedef enum {
-    XINPUT,
-    YINPUT,
-    ADD,
-    SUB,
-    MUL,
-    ID,
-} acirc_operation;
+typedef struct acirc_args_t acirc_args_t;
 
-struct acirc_args_t {
-    acirc_operation op;
-    acircref *args;
-    size_t nargs;
-    bool is_output;
-};
+typedef enum acirc_operation {
+    OP_INPUT,
+    OP_INPUT_PLAINTEXT,
+    OP_CONST,
+    OP_ADD,
+    OP_SUB,
+    OP_MUL,
+    OP_ID,
+} acirc_operation;
 
 typedef struct {
     size_t ninputs;
+    size_t npinputs;
     size_t nconsts;
     size_t ngates;
     size_t nrefs;
@@ -98,10 +95,14 @@ size_t acirc_max_total_degree(acirc *const c);
 size_t acirc_delta (acirc *const c);
 
 // construction
-void acirc_add_test   (acirc *c, char *inp, char *out);
-void acirc_add_xinput (acirc *c, acircref ref, input_id id);
-void acirc_add_yinput (acirc *c, acircref ref, size_t const_id, int val);
-void acirc_add_gate(acirc *c, acircref ref, acirc_operation op, acircref *refs, size_t n, bool is_output);
+void acirc_add_test(acirc *const c, const char *const inpstr,
+                    const char *const outstr);
+void acirc_add_input(acirc *const c, acircref ref);
+void acirc_add_input_plaintext(acirc *const c, acircref ref);
+void acirc_add_const(acirc *const c, acircref ref, int val);
+void acirc_add_gate(acirc *const c, acircref ref, acirc_operation op,
+                    const acircref *const refs, size_t n);
+void acirc_add_output(acirc *const c, acircref ref);
 
 // helpers
 acirc_operation acirc_str2op(char *s);
