@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <unistd.h>
 #ifdef HAVE_GMP
 #include <gmp.h>
 #endif
@@ -13,8 +14,8 @@
 #define ACIRC_OK 0
 #define ACIRC_ERR (-1)
 
-typedef size_t acircref;
-typedef size_t input_id;
+typedef ssize_t acircref;
+typedef ssize_t input_id;
 
 typedef struct acirc_args_t acirc_args_t;
 
@@ -97,8 +98,8 @@ size_t acirc_delta (acirc *const c);
 // construction
 void acirc_add_test(acirc *const c, const char *const inpstr,
                     const char *const outstr);
-void acirc_add_input(acirc *const c, acircref ref);
-void acirc_add_input_plaintext(acirc *const c, acircref ref);
+void acirc_add_input(acirc *const c, acircref ref, acircref id);
+void acirc_add_input_plaintext(acirc *const c, acircref ref, acircref id);
 void acirc_add_const(acirc *const c, acircref ref, int val);
 void acirc_add_gate(acirc *const c, acircref ref, acirc_operation op,
                     const acircref *const refs, size_t n);

@@ -67,18 +67,20 @@ test:           COLON_TEST STR STR NEWLINE
                 }
         ;
 
-input:          STR INPUT NEWLINE
+input:          STR INPUT STR NEWLINE
                 {
-                    acirc_add_input(c, atoi($1));
+                    acirc_add_input(c, atoi($1), atoi($3));
                     free($1);
+                    free($3);
                 }
         ;
 
 input_plaintext:
-                STR INPUT PLAINTEXT NEWLINE
+                STR INPUT PLAINTEXT STR NEWLINE
                 {
-                    acirc_add_input_plaintext(c, atoi($1));
+                    acirc_add_input_plaintext(c, atoi($1), atoi($4));
                     free($1);
+                    free($4);
                 }
         ;
 

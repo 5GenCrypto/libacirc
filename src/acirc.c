@@ -747,7 +747,7 @@ void acirc_add_test(acirc *const c, const char *const inpstr,
     c->ntests += 1;
 }
 
-static void _acirc_add_input(acirc *const c, acircref ref, bool is_plaintext)
+static void _acirc_add_input(acirc *const c, acircref ref, acircref id, bool is_plaintext)
 {
     acircref *args;
     if (g_verbose) {
@@ -758,23 +758,25 @@ static void _acirc_add_input(acirc *const c, acircref ref, bool is_plaintext)
     c->nrefs++;
     if (is_plaintext) {
         c->gates[ref].op = OP_INPUT_PLAINTEXT;
-        args[0] = c->npinputs++;
+        c->npinputs++;
+        args[0] = id;
     } else {
         c->gates[ref].op = OP_INPUT;
-        args[0] = c->ninputs++;
+        c->ninputs++;
+        args[0] = id;
     }
     c->gates[ref].args = args;
     c->gates[ref].nargs = 1;
 }
 
-void acirc_add_input(acirc *const c, acircref ref)
+void acirc_add_input(acirc *const c, acircref ref, acircref id)
 {
-    _acirc_add_input(c, ref, false);
+    _acirc_add_input(c, ref, id, false);
 }
 
-void acirc_add_input_plaintext(acirc *const c, acircref ref)
+void acirc_add_input_plaintext(acirc *const c, acircref ref, acircref id)
 {
-    _acirc_add_input(c, ref, true);
+    _acirc_add_input(c, ref, id, true);
 }
 
 void acirc_add_const(acirc *const c, acircref ref, int val)
