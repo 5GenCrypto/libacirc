@@ -13,8 +13,8 @@
 #define ACIRC_OK 0
 #define ACIRC_ERR (-1)
 
-typedef unsigned long acircref;
-typedef unsigned long input_id;
+typedef size_t acircref;
+typedef size_t input_id;
 
 typedef enum {
     XINPUT,
@@ -63,11 +63,13 @@ int acirc_parse(acirc *c, const char *const filename);
 acirc * acirc_from_file(const char *const filename);
 bool acirc_to_file(const acirc *const c, const char *const fname);
 
+void acirc_verbose(bool verbose);
+
 // evaluation
 int acirc_eval (acirc *c, acircref ref, int *xs);
 
 // run all tests
-bool acirc_ensure(acirc *c, bool verbose);
+bool acirc_ensure(acirc *c);
 
 // topological orderings
 size_t acirc_topological_order(acircref *topo, acirc *c, acircref ref);
@@ -97,12 +99,13 @@ size_t acirc_delta (acirc *const c);
 
 // construction
 void acirc_add_test   (acirc *c, char *inp, char *out);
-void acirc_add_xinput (acirc *c, acircref ref, size_t input_id);
+void acirc_add_xinput (acirc *c, acircref ref, input_id id);
 void acirc_add_yinput (acirc *c, acircref ref, size_t const_id, int val);
-void acirc_add_gate   (acirc *c, acircref ref, acirc_operation op, int xref, int yref, bool is_output);
+void acirc_add_gate(acirc *c, acircref ref, acirc_operation op, acircref *refs, size_t n, bool is_output);
 
 // helpers
 acirc_operation acirc_str2op(char *s);
+char *acirc_op2str(acirc_operation op);
 
 #ifdef HAVE_GMP
 void acirc_eval_mpz_mod(mpz_t rop, acirc *const c, acircref root, mpz_t *xs,

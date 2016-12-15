@@ -6,9 +6,11 @@
 #include <stdlib.h>
 #include <string.h>
 
+static bool g_verbose = true;
+
 static void ensure_gate_space (acirc *c, acircref ref);
 static bool in_array (int x, int *ys, size_t len);
-static bool any_in_array (size_t *xs, int xlen, int *ys, size_t ylen);
+static bool any_in_array (acircref *xs, int xlen, int *ys, size_t ylen);
 static void array_printstring_rev (int *bits, size_t n);
 
 static void* acirc_realloc (void *ptr, size_t size);
@@ -16,6 +18,11 @@ static void* acirc_malloc  (size_t size);
 static void* acirc_calloc  (size_t nmemb, size_t size);
 
 #define max(x,y) (x >= y ? x : y)
+
+void acirc_verbose(bool verbose)
+{
+    g_verbose = verbose;
+}
 
 void acirc_init(acirc *c)
 {
@@ -298,22 +305,22 @@ void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *const c, acircref root, mpz_t *xs
 }
 #endif
 
-bool acirc_ensure(acirc *c, bool verbose)
+bool acirc_ensure(acirc *c)
 {
     int res[c->noutputs];
     bool ok  = true;
 
-    if (verbose)
-        puts("running acirc tests in plaintext...");
+    if (g_verbose)
+        fprintf(stderr, "running acirc tests...\n");
 
     for (size_t test_num = 0; test_num < c->ntests; test_num++) {
         bool test_ok = true;
         for (size_t i = 0; i < c->noutputs; i++) {
             res[i] = acirc_eval(c, c->outrefs[i], c->testinps[test_num]);
-            test_ok = test_ok && ((res[i] != 0) == (c->testouts[test_num][i] == 1));
+            test_ok = test_ok && (res[i] == c->testouts[test_num][i]);
         }
 
-        if (verbose) {
+        if (g_verbose) {
             if (!test_ok)
                 printf("\033[1;41m");
             printf("test %lu input=", test_num);
@@ -717,17 +724,12 @@ void acirc_add_test(acirc *c, char *inpstr, char *outstr)
     int *inp = acirc_malloc(inp_len * sizeof(int));
     int *out = acirc_malloc(out_len * sizeof(int));
 
-    for (int i = 0; i < inp_len; i++)
-        if (inpstr[inp_len-1 - i] == '1')
-            inp[i] = 1;
-        else
-            inp[i] = 0;
-
-    for (int i = 0; i < out_len; i++)
-        if (outstr[out_len-1 - i] == '1')
-            out[i] = 1;
-        else
-            out[i] = 0;
+    for (int i = 0; i < inp_len; i++) {
+        inp[i] = inpstr[inp_len - 1 - i] - 48;
+    }
+    for (int i = 0; i < out_len; i++) {
+        out[i] = outstr[out_len - 1 - i] - 48;
+    }
 
     c->testinps[c->ntests] = inp;
     c->testouts[c->ntests] = out;
@@ -736,6 +738,9 @@ void acirc_add_test(acirc *c, char *inpstr, char *outstr)
 
 void acirc_add_xinput(acirc *c, acircref ref, input_id id)
 {
+    if (g_verbose) {
+        fprintf(stderr, "%lu XINPUT %lu\n", ref, id);
+    }
     ensure_gate_space(c, ref);
     c->ninputs += 1;
     c->nrefs   += 1;
@@ -748,6 +753,9 @@ void acirc_add_xinput(acirc *c, acircref ref, input_id id)
 
 void acirc_add_yinput(acirc *c, acircref ref, size_t id, int val)
 {
+    if (g_verbose) {
+        fprintf(stderr, "%lu YINPUT %lu %d\n", ref, id, val);
+    }
     ensure_gate_space(c, ref);
     if (c->nconsts >= c->_consts_alloc) {
         c->consts = acirc_realloc(c->consts, 2 * c->_consts_alloc * sizeof(int));
@@ -764,20 +772,26 @@ void acirc_add_yinput(acirc *c, acircref ref, size_t id, int val)
     c->gates[ref].nargs = 2;
 }
 
-void acirc_add_gate(acirc *c, acircref ref, acirc_operation op, int xref, int yref, bool is_output)
+void acirc_add_gate(acirc *c, acircref ref, acirc_operation op, acircref *refs, size_t n, bool is_output)
 {
+    if (g_verbose) {
+        fprintf(stderr, "%lu %s %s", ref, is_output ? "output" : "gate",
+                acirc_op2str(op));
+        for (size_t i = 0; i < n; ++i) {
+            fprintf(stderr, " %lu", refs[i]);
+        }
+        fprintf(stderr, "\n");
+    }
     ensure_gate_space(c, ref);
-    c->ngates   += 1;
-    c->nrefs    += 1;
-    c->gates[ref].op  = op;
-    acircref *args = acirc_calloc(2, sizeof(acircref));
-    args[0] = xref;
-    args[1] = yref;
+    c->ngates += 1;
+    c->nrefs += 1;
+    c->gates[ref].op = op;
+    acircref *args = acirc_calloc(n, sizeof(acircref));
+    memcpy(args, refs, n * sizeof(acircref));
     c->gates[ref].args = args;
-    c->gates[ref].nargs = 2;
-    c->gates[ref].is_output = false;
+    c->gates[ref].nargs = n;
+    c->gates[ref].is_output = is_output;
     if (is_output) {
-        c->gates[ref].is_output = true;
         if (c->noutputs >= c->_outref_alloc) {
             c->outrefs = acirc_realloc(c->outrefs, 2 * c->_outref_alloc * sizeof(acircref));
             c->_outref_alloc *= 2;
@@ -813,6 +827,22 @@ acirc_operation acirc_str2op(char *s)
     }
 }
 
+char * acirc_op2str(acirc_operation op)
+{
+    switch (op) {
+    case ADD:
+        return "ADD";
+    case SUB:
+        return "SUB";
+    case MUL:
+        return "MUL";
+    case ID:
+        return "ID";
+    default:
+        return NULL;
+    }
+}
+
 static bool in_array(int x, int *ys, size_t len) {
     for (size_t i = 0; i < len; i++) {
         if (x == ys[i])
@@ -821,7 +851,8 @@ static bool in_array(int x, int *ys, size_t len) {
     return false;
 }
 
-static bool any_in_array(size_t *xs, int xlen, int *ys, size_t ylen) {
+static bool any_in_array(acircref *xs, int xlen, int *ys, size_t ylen)
+{
     for (int i = 0; i < xlen; i++) {
         if (in_array(xs[i], ys, ylen))
             return true;
@@ -832,7 +863,7 @@ static bool any_in_array(size_t *xs, int xlen, int *ys, size_t ylen) {
 static void array_printstring_rev(int *xs, size_t n)
 {
     for (int i = n-1; i >= 0; i--)
-        printf("%d", xs[i] != 0);
+        printf("%d", xs[i]);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
