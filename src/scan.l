@@ -24,5 +24,5 @@ ADD|SUB|MUL|ID {
 } 
 
 \n       { return NEWLINE; }
-[ \t]+   { }
+[ \r\t]+ { }
 #.*\n    { }
