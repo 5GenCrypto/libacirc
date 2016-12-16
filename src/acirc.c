@@ -126,33 +126,23 @@ bool acirc_to_file(const acirc *const c, const char *const fname)
         const acirc_operation op = c->gates[i].op;
         switch (op) {
         case OP_INPUT:
-            fprintf(f, "%ld input\n", i);
+            fprintf(f, "%ld input %ld\n", i, c->gates[i].args[0]);
             break;
         case OP_INPUT_PLAINTEXT:
-            fprintf(f, "%ld input plaintext\n", i);
+            fprintf(f, "%ld input plaintext %ld\n", i, c->gates[i].args[0]);
             break;
         case OP_CONST:
-            fprintf(f, "%ld const %ld\n", i, c->gates[i].args[0]);
+            fprintf(f, "%ld const %ld\n", i, c->gates[i].args[1]);
             break;
-        case OP_ADD:
-            fprintf(f, "%ld %s OP_ADD %ld %ld\n", i,
+        case OP_ADD: case OP_SUB: case OP_MUL: case OP_ID:
+            fprintf(f, "%ld %s %s", i,
                     c->gates[i].is_output ? "output" : "gate",
-                    c->gates[i].args[0], c->gates[i].args[1]);
+                    acirc_op2str(c->gates[i].op));
+            for (size_t j = 0; j < c->gates[i].nargs; ++j) {
+                fprintf(f, " %ld", c->gates[i].args[j]);
+            }
+            fprintf(f, "\n");
             break;
-        case OP_SUB:
-            fprintf(f, "%ld %s OP_SUB %ld %ld\n", i,
-                    c->gates[i].is_output ? "output" : "gate",
-                    c->gates[i].args[0], c->gates[i].args[1]);
-            break;
-        case OP_MUL:
-            fprintf(f, "%ld %s OP_MUL %ld %ld\n", i,
-                    c->gates[i].is_output ? "output" : "gate",
-                    c->gates[i].args[0], c->gates[i].args[1]);
-            break;
-        case OP_ID:
-            fprintf(f, "%ld %s OP_ID %ld\n", i,
-                    c->gates[i].is_output ? "output" : "gate",
-                    c->gates[i].args[0]);
         }
     }
     fclose(f);
@@ -751,7 +741,7 @@ static void _acirc_add_input(acirc *const c, acircref ref, acircref id, bool is_
 {
     acircref *args;
     if (g_verbose) {
-        fprintf(stderr, "%lu input%s\n", ref, is_plaintext ? " plaintext" : "");
+        fprintf(stderr, "%lu input%s %lu\n", ref, is_plaintext ? " plaintext" : "", id);
     }
     args = acirc_calloc(1, sizeof(acircref));
     ensure_gate_space(c, ref);
