@@ -17,8 +17,6 @@
 typedef ssize_t acircref;
 typedef ssize_t input_id;
 
-typedef struct acirc_args_t acirc_args_t;
-
 typedef enum acirc_operation {
     OP_INPUT,
     OP_INPUT_PLAINTEXT,
@@ -28,6 +26,13 @@ typedef enum acirc_operation {
     OP_MUL,
     OP_ID,
 } acirc_operation;
+
+typedef struct acirc_args_t {
+    acirc_operation op;
+    acircref *args;
+    size_t nargs;
+    bool is_output;
+} acirc_args_t;
 
 typedef struct {
     size_t ninputs;

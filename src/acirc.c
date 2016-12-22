@@ -6,13 +6,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct acirc_args_t {
-    acirc_operation op;
-    acircref *args;
-    size_t nargs;
-    bool is_output;
-};
-
 static bool g_verbose = true;
 
 static void ensure_gate_space (acirc *c, acircref ref);
