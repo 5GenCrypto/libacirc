@@ -574,11 +574,11 @@ static size_t acirc_degree_helper(const acirc *const c, acircref ref, size_t *co
         break;
     case OP_ADD: case OP_SUB: case OP_MUL:
         for (size_t i = 0; i < gate->nargs; ++i) {
-            size_t tmp = acirc_depth_helper(c, gate->args[i], memo, seen);
+            size_t tmp = acirc_degree_helper(c, gate->args[i], memo, seen);
             if (gate->op == OP_MUL)
                 ret += tmp;
             else
-                ret = ret > tmp ? ret : tmp;
+                ret = (ret > tmp) ? ret : tmp;
         }
         break;
     case OP_ID:
