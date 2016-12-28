@@ -85,7 +85,7 @@ int acirc_parse(acirc *c, const char *const filename)
 {
     yyin = fopen(filename, "r");
     if (yyin == NULL) {
-        fprintf(stderr, "[libacirc] error: could not open file \"%s\"\n", filename);
+        fprintf(stderr, "error: could not open file \"%s\"\n", filename);
         return ACIRC_ERR;
     }
     int ret = yyparse(c);
@@ -191,67 +191,18 @@ int acirc_eval(acirc *c, acircref root, int *xs)
 }
 
 #ifdef HAVE_GMP
-void acirc_eval_mpz_mod(mpz_t rop, acirc *const c, acircref root, mpz_t *xs,
-                        mpz_t *ys, const mpz_t modulus)
-{
-    /* TODO: this should just call acirc_eval_mpz_mod_memo */
-    const struct acirc_args_t *gate = &c->gates[root];
-    const acirc_operation op = gate->op;
-    switch (op) {
-    case OP_INPUT:
-        mpz_set(rop, xs[gate->args[0]]);
-        break;
-    case OP_INPUT_PLAINTEXT:
-        abort();                /* FIXME: handle this case */
-    case OP_CONST:
-        mpz_set(rop, ys[gate->args[0]]);
-        break;
-    case OP_ADD: case OP_SUB: case OP_MUL: {
-        mpz_t zs[gate->nargs];
-        for (size_t i = 0; i < gate->nargs; ++i) {
-            mpz_init(zs[i]);
-            acirc_eval_mpz_mod(zs[i], c, gate->args[i], xs, ys, modulus);
-        }
-        if (op == OP_ADD) {
-            mpz_set_ui(rop, 0);
-            for (size_t i = 0; i < gate->nargs; ++i) {
-                mpz_add(rop, rop, zs[i]);
-                mpz_mod(rop, rop, modulus);
-            }
-        } else if (op == OP_SUB) {
-            mpz_set(rop, zs[0]);
-            for (size_t i = 1; i < gate->nargs; ++i) {
-                mpz_sub(rop, rop, zs[i]);
-                mpz_mod(rop, rop, modulus);
-            }
-        } else if (op == OP_MUL) {
-            mpz_set_ui(rop, 1);
-            for (size_t i = 0; i < gate->nargs; ++i) {
-                mpz_mul(rop, rop, zs[i]);
-                mpz_mod(rop, rop, modulus);
-            }
-        } else abort();
-        for (size_t i = 0; i < gate->nargs; ++i) {
-            mpz_clear(zs[i]);
-        }
-        break;
-    }
-    case OP_ID:
-        acirc_eval_mpz_mod(rop, c, gate->args[0], xs, ys, modulus);
-        break;
-    }
-}
 
-void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *const c, acircref root, mpz_t *xs,
-                             mpz_t *ys, const mpz_t modulus, bool *known,
-                             mpz_t *cache)
+void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *const c, acircref root,
+                             const mpz_t *const xs, const mpz_t *const ys,
+                             const mpz_t modulus, bool *const known,
+                             mpz_t *const cache)
 {
     if (known[root]) {
         mpz_set(rop, cache[root]);
         return;
     }
 
-    const struct acirc_args_t *gate = &c->gates[root];
+    const struct acirc_args_t *const gate = &c->gates[root];
     const acirc_operation op = gate->op;
     switch (op) {
     case OP_INPUT:
@@ -266,7 +217,7 @@ void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *const c, acircref root, mpz_t *xs
         mpz_t zs[gate->nargs];
         for (size_t i = 0; i < gate->nargs; ++i) {
             mpz_init(zs[i]);
-            acirc_eval_mpz_mod(zs[i], c, gate->args[i], xs, ys, modulus);
+            acirc_eval_mpz_mod_memo(zs[i], c, gate->args[i], xs, ys, modulus, known, cache);
         }
         if (op == OP_ADD) {
             mpz_set_ui(rop, 0);
@@ -297,9 +248,70 @@ void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *const c, acircref root, mpz_t *xs
         break;
     }
     case OP_ID:
-        acirc_eval_mpz_mod(rop, c, gate->args[0], xs, ys, modulus);
+        acirc_eval_mpz_mod_memo(rop, c, gate->args[0], xs, ys, modulus, known, cache);
         break;
     }
+}
+
+
+void acirc_eval_mpz_mod(mpz_t rop, acirc *const c, acircref root,
+                        const mpz_t *const xs, const mpz_t *const ys,
+                        const mpz_t modulus)
+{
+    bool known[c->nrefs];
+    mpz_t cache[c->nrefs];
+    memset(known, '\0', sizeof known);
+    acirc_eval_mpz_mod_memo(rop, c, root, xs, ys, modulus, known, cache);
+    for (size_t i = 0; i < c->nrefs; ++i) {
+        if (known[i])
+            mpz_clear(cache[i]);
+    }
+    /* /\* TODO: this should just call acirc_eval_mpz_mod_memo *\/ */
+    /* const struct acirc_args_t *gate = &c->gates[root]; */
+    /* const acirc_operation op = gate->op; */
+    /* switch (op) { */
+    /* case OP_INPUT: */
+    /*     mpz_set(rop, xs[gate->args[0]]); */
+    /*     break; */
+    /* case OP_INPUT_PLAINTEXT: */
+    /*     abort();                /\* FIXME: handle this case *\/ */
+    /* case OP_CONST: */
+    /*     mpz_set(rop, ys[gate->args[0]]); */
+    /*     break; */
+    /* case OP_ADD: case OP_SUB: case OP_MUL: { */
+    /*     mpz_t zs[gate->nargs]; */
+    /*     for (size_t i = 0; i < gate->nargs; ++i) { */
+    /*         mpz_init(zs[i]); */
+    /*         acirc_eval_mpz_mod(zs[i], c, gate->args[i], xs, ys, modulus); */
+    /*     } */
+    /*     if (op == OP_ADD) { */
+    /*         mpz_set_ui(rop, 0); */
+    /*         for (size_t i = 0; i < gate->nargs; ++i) { */
+    /*             mpz_add(rop, rop, zs[i]); */
+    /*             mpz_mod(rop, rop, modulus); */
+    /*         } */
+    /*     } else if (op == OP_SUB) { */
+    /*         mpz_set(rop, zs[0]); */
+    /*         for (size_t i = 1; i < gate->nargs; ++i) { */
+    /*             mpz_sub(rop, rop, zs[i]); */
+    /*             mpz_mod(rop, rop, modulus); */
+    /*         } */
+    /*     } else if (op == OP_MUL) { */
+    /*         mpz_set_ui(rop, 1); */
+    /*         for (size_t i = 0; i < gate->nargs; ++i) { */
+    /*             mpz_mul(rop, rop, zs[i]); */
+    /*             mpz_mod(rop, rop, modulus); */
+    /*         } */
+    /*     } else abort(); */
+    /*     for (size_t i = 0; i < gate->nargs; ++i) { */
+    /*         mpz_clear(zs[i]); */
+    /*     } */
+    /*     break; */
+    /* } */
+    /* case OP_ID: */
+    /*     acirc_eval_mpz_mod(rop, c, gate->args[0], xs, ys, modulus); */
+    /*     break; */
+    /* } */
 }
 
 static void array_printstring_rev_mpz(mpz_t *xs, size_t n)
@@ -333,7 +345,8 @@ bool acirc_ensure_mpz(acirc *const c)
         for (size_t i = 0; i < c->ninputs; ++i)
             mpz_set_ui(xs[i], c->testinps[test_num][i]);
         for (size_t i = 0; i < c->noutputs; i++) {
-            acirc_eval_mpz_mod(rs[i], c, c->outrefs[i], xs, ys, modulus);
+            acirc_eval_mpz_mod(rs[i], c, c->outrefs[i], (const mpz_t *) xs,
+                               (const mpz_t *) ys, modulus);
             test_ok = test_ok && (mpz_cmp_ui(rs[i], c->testouts[test_num][i]) == 0);
         }
 
@@ -792,9 +805,9 @@ void acirc_add_test(acirc *const c, const char *const inpstr,
 static void _acirc_add_input(acirc *const c, acircref ref, acircref id, bool is_plaintext)
 {
     acircref *args;
-    if (g_verbose) {
-        fprintf(stderr, "%lu input%s %lu\n", ref, is_plaintext ? " plaintext" : "", id);
-    }
+    /* if (g_verbose) { */
+    /*     fprintf(stderr, "%lu input%s %lu\n", ref, is_plaintext ? " plaintext" : "", id); */
+    /* } */
     args = acirc_calloc(1, sizeof(acircref));
     ensure_gate_space(c, ref);
     c->nrefs++;
@@ -823,9 +836,9 @@ void acirc_add_input_plaintext(acirc *const c, acircref ref, acircref id)
 
 void acirc_add_const(acirc *const c, acircref ref, int val)
 {
-    if (g_verbose) {
-        fprintf(stderr, "%lu const %d\n", ref, val);
-    }
+    /* if (g_verbose) { */
+    /*     fprintf(stderr, "%lu const %d\n", ref, val); */
+    /* } */
     ensure_gate_space(c, ref);
     if (c->nconsts >= c->_consts_alloc) {
         c->consts = acirc_realloc(c->consts, 2 * c->_consts_alloc * sizeof(int));
@@ -844,13 +857,13 @@ void acirc_add_const(acirc *const c, acircref ref, int val)
 void acirc_add_gate(acirc *const c, acircref ref, acirc_operation op,
                     const acircref *const refs, size_t n)
 {
-    if (g_verbose) {
-        fprintf(stderr, "%lu %s", ref, acirc_op2str(op));
-        for (size_t i = 0; i < n; ++i) {
-            fprintf(stderr, " %lu", refs[i]);
-        }
-        fprintf(stderr, "\n");
-    }
+    /* if (g_verbose) { */
+    /*     fprintf(stderr, "%lu %s", ref, acirc_op2str(op)); */
+    /*     for (size_t i = 0; i < n; ++i) { */
+    /*         fprintf(stderr, " %lu", refs[i]); */
+    /*     } */
+    /*     fprintf(stderr, "\n"); */
+    /* } */
     ensure_gate_space(c, ref);
     c->ngates += 1;
     c->nrefs += 1;
@@ -877,7 +890,7 @@ void acirc_add_output(acirc *const c, acircref ref)
 
 static void ensure_gate_space(acirc *c, acircref ref)
 {
-    if (ref >= c->_ref_alloc) {
+    if ((size_t) ref >= c->_ref_alloc) {
         c->gates = acirc_realloc(c->gates, 2 * c->_ref_alloc * sizeof(struct acirc_args_t));
         c->_ref_alloc *= 2;
     }

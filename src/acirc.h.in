@@ -115,12 +115,13 @@ acirc_operation acirc_str2op(char *s);
 char *acirc_op2str(acirc_operation op);
 
 #ifdef HAVE_GMP
-void acirc_eval_mpz_mod(mpz_t rop, acirc *const c, acircref root, mpz_t *xs,
-                        mpz_t *ys, const mpz_t modulus);
-
-void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *const c, acircref root, mpz_t *xs,
-                             mpz_t *ys, const mpz_t modulus, bool *known,
-                             mpz_t *cache);
+void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *const c, acircref root,
+                             const mpz_t *const xs, const mpz_t *const ys,
+                             const mpz_t modulus, bool *const known,
+                             mpz_t *const cache);
+void acirc_eval_mpz_mod(mpz_t rop, acirc *const c, acircref root,
+                        const mpz_t *const xs, const mpz_t *const ys,
+                        const mpz_t modulus);
 bool acirc_ensure_mpz(acirc *const c);
 #endif
 
