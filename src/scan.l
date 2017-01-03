@@ -1,28 +1,30 @@
+
+%option noyywrap yylineno
+%option always-interactive
+
 %{
 #include "acirc.h"
 #include "parse.h"
 #include <stdlib.h>
 %}
 
-%option noyywrap
-%option always-interactive
-
 %%
-
-[0-9]+      { yylval.str = strdup(yytext); return STR; }
 
 input       { return INPUT; }
 plaintext   { return PLAINTEXT; }
 const       { return CONST; }
-output      { return OUTPUT; }
-
-:test       { return COLON_TEST; }
 
 ADD|SUB|MUL|ID {
     yylval.op = acirc_str2op(yytext); 
-    return GATETYPE; 
+    return GATE;
 } 
 
-\n       { return NEWLINE; }
+\n       { return ENDL; }
 [ \r\t]+ { }
 #.*\n    { }
+
+[0-9]+      { yylval.num = strdup(yytext); return NUM; }
+[a-zA-Z]+   { yylval.str = strdup(yytext); return STR; }
+:[a-zA-Z]+  { yylval.cmd = strdup(yytext); return COMMAND; }
+
+. printf("Unrecognized character: %s\n", yytext);

@@ -11,11 +11,10 @@
 #include <gmp.h>
 #endif
 
-#define ACIRC_OK 0
+#define ACIRC_OK    0
 #define ACIRC_ERR (-1)
 
 typedef ssize_t acircref;
-typedef ssize_t input_id;
 
 typedef enum acirc_operation {
     OP_INPUT,
@@ -27,6 +26,7 @@ typedef enum acirc_operation {
     OP_ID,
 } acirc_operation;
 
+/* TODO: rename acirc_gate_t */
 typedef struct acirc_args_t {
     acirc_operation op;
     acircref *args;
@@ -56,77 +56,63 @@ typedef struct {
     bool   **_degree_memoed;
 } acirc;
 
-#ifdef __cplusplus
-extern "C" {
-#endif
-
-void acirc_init(acirc *c);
-void acirc_clear(acirc *c);
-int acirc_parse(acirc *c, const char *const filename);
-acirc * acirc_from_file(const char *const filename);
-bool acirc_to_file(const acirc *const c, const char *const fname);
-
-void acirc_verbose(bool verbose);
-
-// evaluation
-int acirc_eval (acirc *c, acircref ref, int *xs);
-
-// run all tests
-bool acirc_ensure(acirc *c);
-
-// topological orderings
-size_t acirc_topological_order(acircref *topo, acirc *c, acircref ref);
-
 typedef struct {
     int nlevels;
     int **levels;
     int *level_sizes;
 } acirc_topo_levels;
 
+/* #ifdef __cplusplus */
+/* extern "C" { */
+/* #endif */
+
+void acirc_init(acirc *c);
+void acirc_clear(acirc *c);
+int acirc_parse(acirc *c, const char *filename);
+acirc * acirc_from_file(const char *filename);
+bool acirc_to_file(const acirc *c, const char *fname);
+void acirc_verbose(uint32_t verbose);
+
+int acirc_eval(acirc *c, acircref ref, int *xs);
+
+bool acirc_ensure(acirc *c);
+
+// topological orderings
+size_t acirc_topological_order(acircref *topo, acirc *c, acircref ref);
 acirc_topo_levels* acirc_topological_levels(acirc *c, acircref root);
 void acirc_topo_levels_destroy(acirc_topo_levels *topo);
 
 // degree calculations
-size_t acirc_depth        (const acirc *const c, acircref ref);
-size_t acirc_degree       (const acirc *const c, acircref ref);
-size_t acirc_var_degree   (acirc *const c, acircref ref, input_id id);
-size_t acirc_const_degree (acirc *const c, acircref ref);
+size_t acirc_depth        (const acirc *c, acircref ref);
+size_t acirc_degree       (const acirc *c, acircref ref);
+size_t acirc_var_degree   (acirc *c, acircref ref, acircref id);
+size_t acirc_const_degree (acirc *c, acircref ref);
 
-size_t acirc_max_degree       (const acirc *const c);
-size_t acirc_max_var_degree   (acirc *const c, input_id id);
-size_t acirc_max_const_degree (acirc *const c);
+size_t acirc_max_degree       (const acirc *c);
+size_t acirc_max_var_degree   (acirc *c, acircref id);
+size_t acirc_max_const_degree (acirc *c);
 /* computes the degree if all ops result in an additive increase */
-size_t acirc_max_total_degree(acirc *const c);
+size_t acirc_max_total_degree(acirc *c);
 
-size_t acirc_delta (acirc *const c);
-
-// construction
-void acirc_add_test(acirc *const c, const char *const inpstr,
-                    const char *const outstr);
-void acirc_add_input(acirc *const c, acircref ref, acircref id);
-void acirc_add_input_plaintext(acirc *const c, acircref ref, acircref id);
-void acirc_add_const(acirc *const c, acircref ref, int val);
-void acirc_add_gate(acirc *const c, acircref ref, acirc_operation op,
-                    const acircref *const refs, size_t n);
-void acirc_add_output(acirc *const c, acircref ref);
+size_t acirc_delta (acirc *c);
 
 // helpers
 acirc_operation acirc_str2op(char *s);
 char *acirc_op2str(acirc_operation op);
 
 #ifdef HAVE_GMP
-void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *const c, acircref root,
-                             const mpz_t *const xs, const mpz_t *const ys,
-                             const mpz_t modulus, bool *const known,
-                             mpz_t *const cache);
-void acirc_eval_mpz_mod(mpz_t rop, acirc *const c, acircref root,
-                        const mpz_t *const xs, const mpz_t *const ys,
+void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root,
+                             const mpz_t *xs, const mpz_t *ys,
+                             const mpz_t modulus, bool *known,
+                             mpz_t *cache);
+void acirc_eval_mpz_mod(mpz_t rop, acirc *c, acircref root,
+                        const mpz_t *xs, const mpz_t *ys,
                         const mpz_t modulus);
-bool acirc_ensure_mpz(acirc *const c);
+bool acirc_ensure_mpz(acirc *c);
 #endif
 
-#ifdef __cplusplus
-}
-#endif
+/* #ifdef __cplusplus */
+/* } */
+/* #endif */
 
 #endif

@@ -1,4 +1,5 @@
 #include "acirc.h"
+#include "utils.h"
 
 #include <assert.h>
 #include <math.h>
@@ -6,20 +7,10 @@
 #include <stdlib.h>
 #include <string.h>
 
-static bool g_verbose = true;
+extern int yyparse(acirc *);
+extern FILE *yyin;
 
-static void ensure_gate_space (acirc *c, acircref ref);
-static bool in_array (int x, int *ys, size_t len);
-static bool any_in_array (acircref *xs, int xlen, int *ys, size_t ylen);
-static void array_printstring_rev (int *bits, size_t n);
-
-static void* acirc_realloc (void *ptr, size_t size);
-static void* acirc_malloc  (size_t size);
-static void* acirc_calloc  (size_t nmemb, size_t size);
-
-#define max(x,y) (x >= y ? x : y)
-
-void acirc_verbose(bool verbose)
+void acirc_verbose(uint32_t verbose)
 {
     g_verbose = verbose;
 }
@@ -44,7 +35,7 @@ void acirc_init(acirc *c)
     c->_degree_memo_allocated = false;
 }
 
-static void degree_memo_allocate(acirc *const c)
+static void degree_memo_allocate(acirc *c)
 {
     c->_degree_memo   = acirc_calloc(c->ninputs+1, sizeof(size_t *));
     c->_degree_memoed = acirc_calloc(c->ninputs+1, sizeof(bool *));
@@ -79,9 +70,7 @@ void acirc_clear(acirc *c)
     }
 }
 
-extern int yyparse(acirc *);
-extern FILE *yyin;
-int acirc_parse(acirc *c, const char *const filename)
+int acirc_parse(acirc *c, const char *filename)
 {
     yyin = fopen(filename, "r");
     if (yyin == NULL) {
@@ -93,7 +82,7 @@ int acirc_parse(acirc *c, const char *const filename)
     return ret;
 }
 
-acirc * acirc_from_file(const char *const filename)
+acirc * acirc_from_file(const char *filename)
 {
     acirc *c = acirc_malloc(sizeof(acirc));
     acirc_init(c);
@@ -106,31 +95,28 @@ acirc * acirc_from_file(const char *const filename)
     return c;
 }
 
-bool acirc_to_file(const acirc *const c, const char *const fname)
+bool acirc_to_file(const acirc *c, const char *fname)
 {
-    const size_t n = c->nrefs;
     bool ret = true;
     FILE *f;
 
     f = fopen(fname, "w");
     if (f == NULL)
         return false;
-    for (size_t i = 0; i < n; ++i) {
+    for (size_t i = 0; i < c->nrefs; ++i) {
         const acirc_operation op = c->gates[i].op;
         switch (op) {
         case OP_INPUT:
             fprintf(f, "%ld input %ld\n", i, c->gates[i].args[0]);
             break;
         case OP_INPUT_PLAINTEXT:
-            fprintf(f, "%ld input plaintext %ld\n", i, c->gates[i].args[0]);
+            fprintf(f, "%ld plaintext %ld\n", i, c->gates[i].args[0]);
             break;
         case OP_CONST:
             fprintf(f, "%ld const %ld\n", i, c->gates[i].args[1]);
             break;
         case OP_ADD: case OP_SUB: case OP_MUL: case OP_ID:
-            fprintf(f, "%ld %s %s", i,
-                    c->gates[i].is_output ? "output" : "gate",
-                    acirc_op2str(c->gates[i].op));
+            fprintf(f, "%ld %s", i, acirc_op2str(c->gates[i].op));
             for (size_t j = 0; j < c->gates[i].nargs; ++j) {
                 fprintf(f, " %ld", c->gates[i].args[j]);
             }
@@ -138,6 +124,11 @@ bool acirc_to_file(const acirc *const c, const char *const fname)
             break;
         }
     }
+    fprintf(f, ":outputs");
+    for (size_t i = 0; i < c->noutputs; ++i) {
+        fprintf(f, " %ld", c->outrefs[i]);
+    }
+    fprintf(f, "\n");
     fclose(f);
     return ret;
 }
@@ -190,188 +181,7 @@ int acirc_eval(acirc *c, acircref root, int *xs)
     return vals[root];
 }
 
-#ifdef HAVE_GMP
-
-void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *const c, acircref root,
-                             const mpz_t *const xs, const mpz_t *const ys,
-                             const mpz_t modulus, bool *const known,
-                             mpz_t *const cache)
-{
-    if (known[root]) {
-        mpz_set(rop, cache[root]);
-        return;
-    }
-
-    const struct acirc_args_t *const gate = &c->gates[root];
-    const acirc_operation op = gate->op;
-    switch (op) {
-    case OP_INPUT:
-        mpz_set(rop, xs[gate->args[0]]);
-        break;
-    case OP_INPUT_PLAINTEXT:
-        abort();                /* FIXME: handle this case */
-    case OP_CONST:
-        mpz_set(rop, ys[gate->args[0]]);
-        break;
-    case OP_ADD: case OP_SUB: case OP_MUL: {
-        mpz_t zs[gate->nargs];
-        for (size_t i = 0; i < gate->nargs; ++i) {
-            mpz_init(zs[i]);
-            acirc_eval_mpz_mod_memo(zs[i], c, gate->args[i], xs, ys, modulus, known, cache);
-        }
-        if (op == OP_ADD) {
-            mpz_set_ui(rop, 0);
-            for (size_t i = 0; i < gate->nargs; ++i) {
-                mpz_add(rop, rop, zs[i]);
-                mpz_mod(rop, rop, modulus);
-            }
-        } else if (op == OP_SUB) {
-            mpz_set(rop, zs[0]);
-            for (size_t i = 1; i < gate->nargs; ++i) {
-                mpz_sub(rop, rop, zs[i]);
-                mpz_mod(rop, rop, modulus);
-            }
-        } else if (op == OP_MUL) {
-            mpz_set_ui(rop, 1);
-            for (size_t i = 0; i < gate->nargs; ++i) {
-                mpz_mul(rop, rop, zs[i]);
-                mpz_mod(rop, rop, modulus);
-            }
-        } else abort();
-        for (size_t i = 0; i < gate->nargs; ++i) {
-            mpz_clear(zs[i]);
-        }
-
-        mpz_init(cache[root]);
-        mpz_set(cache[root], rop);
-        known[root] = true;
-        break;
-    }
-    case OP_ID:
-        acirc_eval_mpz_mod_memo(rop, c, gate->args[0], xs, ys, modulus, known, cache);
-        break;
-    }
-}
-
-
-void acirc_eval_mpz_mod(mpz_t rop, acirc *const c, acircref root,
-                        const mpz_t *const xs, const mpz_t *const ys,
-                        const mpz_t modulus)
-{
-    bool known[c->nrefs];
-    mpz_t cache[c->nrefs];
-    memset(known, '\0', sizeof known);
-    acirc_eval_mpz_mod_memo(rop, c, root, xs, ys, modulus, known, cache);
-    for (size_t i = 0; i < c->nrefs; ++i) {
-        if (known[i])
-            mpz_clear(cache[i]);
-    }
-    /* /\* TODO: this should just call acirc_eval_mpz_mod_memo *\/ */
-    /* const struct acirc_args_t *gate = &c->gates[root]; */
-    /* const acirc_operation op = gate->op; */
-    /* switch (op) { */
-    /* case OP_INPUT: */
-    /*     mpz_set(rop, xs[gate->args[0]]); */
-    /*     break; */
-    /* case OP_INPUT_PLAINTEXT: */
-    /*     abort();                /\* FIXME: handle this case *\/ */
-    /* case OP_CONST: */
-    /*     mpz_set(rop, ys[gate->args[0]]); */
-    /*     break; */
-    /* case OP_ADD: case OP_SUB: case OP_MUL: { */
-    /*     mpz_t zs[gate->nargs]; */
-    /*     for (size_t i = 0; i < gate->nargs; ++i) { */
-    /*         mpz_init(zs[i]); */
-    /*         acirc_eval_mpz_mod(zs[i], c, gate->args[i], xs, ys, modulus); */
-    /*     } */
-    /*     if (op == OP_ADD) { */
-    /*         mpz_set_ui(rop, 0); */
-    /*         for (size_t i = 0; i < gate->nargs; ++i) { */
-    /*             mpz_add(rop, rop, zs[i]); */
-    /*             mpz_mod(rop, rop, modulus); */
-    /*         } */
-    /*     } else if (op == OP_SUB) { */
-    /*         mpz_set(rop, zs[0]); */
-    /*         for (size_t i = 1; i < gate->nargs; ++i) { */
-    /*             mpz_sub(rop, rop, zs[i]); */
-    /*             mpz_mod(rop, rop, modulus); */
-    /*         } */
-    /*     } else if (op == OP_MUL) { */
-    /*         mpz_set_ui(rop, 1); */
-    /*         for (size_t i = 0; i < gate->nargs; ++i) { */
-    /*             mpz_mul(rop, rop, zs[i]); */
-    /*             mpz_mod(rop, rop, modulus); */
-    /*         } */
-    /*     } else abort(); */
-    /*     for (size_t i = 0; i < gate->nargs; ++i) { */
-    /*         mpz_clear(zs[i]); */
-    /*     } */
-    /*     break; */
-    /* } */
-    /* case OP_ID: */
-    /*     acirc_eval_mpz_mod(rop, c, gate->args[0], xs, ys, modulus); */
-    /*     break; */
-    /* } */
-}
-
-static void array_printstring_rev_mpz(mpz_t *xs, size_t n)
-{
-    for (int i = n-1; i >= 0; i--)
-        gmp_printf("%Zd", xs[i]);
-}
-
-
-bool acirc_ensure_mpz(acirc *const c)
-{
-    bool ok = true;
-    mpz_t xs[c->ninputs];
-    mpz_t ys[c->nconsts];
-    mpz_t rs[c->noutputs];
-    mpz_t modulus;
-
-    if (g_verbose)
-        fprintf(stderr, "running acirc tests...\n");
-
-    for (size_t i = 0; i < c->ninputs; ++i)
-        mpz_init(xs[i]);
-    for (size_t i = 0; i < c->nconsts; ++i)
-        mpz_init_set_ui(ys[i], c->consts[i]);
-    for (size_t i = 0; i < c->noutputs; ++i)
-        mpz_init(rs[i]);
-    mpz_init_set_ui(modulus, 23);
-
-    for (size_t test_num = 0; test_num < c->ntests; test_num++) {
-        bool test_ok = true;
-        for (size_t i = 0; i < c->ninputs; ++i)
-            mpz_set_ui(xs[i], c->testinps[test_num][i]);
-        for (size_t i = 0; i < c->noutputs; i++) {
-            acirc_eval_mpz_mod(rs[i], c, c->outrefs[i], (const mpz_t *) xs,
-                               (const mpz_t *) ys, modulus);
-            test_ok = test_ok && (mpz_cmp_ui(rs[i], c->testouts[test_num][i]) == 0);
-        }
-
-        if (g_verbose) {
-            if (!test_ok)
-                printf("\033[1;41m");
-            printf("test %lu input=", test_num);
-            array_printstring_rev(c->testinps[test_num], c->ninputs);
-            printf(" expected=");
-            array_printstring_rev(c->testouts[test_num], c->noutputs);
-            printf(" got=");
-            array_printstring_rev_mpz(rs, c->noutputs);
-            if (!test_ok)
-                printf("\033[0m");
-            puts("");
-        }
-
-        ok = ok && test_ok;
-    }
-    return ok;
-}
-
-#endif
-
-bool acirc_ensure(acirc *const c)
+bool acirc_ensure(acirc *c)
 {
     int res[c->noutputs];
     bool ok  = true;
@@ -406,137 +216,9 @@ bool acirc_ensure(acirc *const c)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// acirc topological ordering
-
-static void topo_helper(int ref, acircref *topo, bool *seen, size_t *i, acirc *c)
-{
-    if (seen[ref])
-        return;
-    const struct acirc_args_t *gate = &c->gates[ref];
-    switch (gate->op) {
-    case OP_INPUT: case OP_INPUT_PLAINTEXT: case OP_CONST:
-        break;
-    case OP_ADD: case OP_SUB: case OP_MUL:
-        for (size_t j = 0; j < gate->nargs; ++j) {
-            topo_helper(gate->args[j], topo, seen, i, c);
-        }
-        break;
-    case OP_ID:
-        topo_helper(gate->args[0], topo, seen, i, c);
-        break;
-    }
-    topo[(*i)++] = ref;
-    seen[ref]    = true;
-}
-
-// returns the number of references in the topological order
-size_t acirc_topological_order(acircref *topo, acirc *c, acircref ref)
-{
-    bool seen[c->_ref_alloc];
-    size_t i = 0;
-    memset(seen, '\0', sizeof seen);
-    topo_helper(ref, topo, seen, &i, c);
-    return i;
-}
-
-// dependencies fills an array with the refs to the subcircuit rooted at ref.
-// deps is the target array, i is an index into it.
-static void dependencies_helper(acircref *deps, bool *seen, int *i, acirc *c, int ref)
-{
-    if (seen[ref])
-        return;
-    const struct acirc_args_t *gate = &c->gates[ref];
-    switch (gate->op) {
-    case OP_INPUT: case OP_INPUT_PLAINTEXT: case OP_CONST:
-        break;
-    case OP_ADD: case OP_SUB: case OP_MUL:
-        for (size_t j = 0; j < gate->nargs; ++j) {
-            deps[(*i)++] = gate->args[j];
-        }
-        for (size_t j = 0; j < gate->nargs; ++j) {
-            dependencies_helper(deps, seen, i, c, gate->args[j]);
-        }
-        seen[ref] = true;
-        break;
-    case OP_ID:
-        deps[(*i)++] = gate->args[0];
-        dependencies_helper(deps, seen, i, c, gate->args[0]);
-        seen[ref] = true;
-        break;
-    }
-}
-
-static int dependencies(acircref *deps, acirc *c, int ref)
-{
-    bool seen[c->nrefs];
-    int ndeps = 0;
-    memset(seen, '\0', sizeof seen);
-    dependencies_helper(deps, seen, &ndeps, c, ref);
-    return ndeps;
-}
-
-acirc_topo_levels * acirc_topological_levels(acirc *c, acircref root)
-{
-    acirc_topo_levels *topo = acirc_malloc(sizeof(acirc_topo_levels));
-
-    topo->levels      = acirc_malloc(c->nrefs * sizeof(acircref));
-    topo->level_sizes = acirc_calloc(c->nrefs, sizeof(int));
-    int *level_alloc  = acirc_calloc(c->nrefs, sizeof(int));
-    acircref *topo_list = acirc_calloc(c->nrefs, sizeof(acircref));
-    acircref *deps      = acirc_malloc(2 * c->nrefs * sizeof(acircref));
-
-    size_t max_level = 0;
-    acirc_topological_order(topo_list, c, root);
-
-    for (size_t i = 0; i < c->nrefs; i++) {
-        int ref = topo_list[i];
-        int ndeps = dependencies(deps, c, ref);
-
-        // find the right level for this ref
-        for (size_t j = 0; j < c->nrefs; j++) {
-            // if the ref has a dependency in this topological level, try the next level
-            bool has_dep = any_in_array(deps, ndeps, topo->levels[j], topo->level_sizes[j]);
-            if (has_dep) continue;
-            // otherwise the ref belongs on this level
-
-            // ensure space
-            if (level_alloc[j] == 0) {
-                level_alloc[j] = 2;
-                topo->levels[j] = acirc_malloc(level_alloc[j] * sizeof(int));
-            } else if (topo->level_sizes[j] + 1 >= level_alloc[j]) {
-                level_alloc[j] *= 2;
-                topo->levels[j] = acirc_realloc(topo->levels[j], level_alloc[j] * sizeof(int));
-            }
-
-            topo->levels[j][topo->level_sizes[j]] = ref; // push this ref
-            topo->level_sizes[j] += 1;
-
-            if (j > max_level)
-                max_level = j;
-
-            break; // we've found the right level for this ref: stop searching
-        }
-    }
-    topo->nlevels = max_level + 1;
-    free(topo_list);
-    free(deps);
-    free(level_alloc);
-    return topo;
-}
-
-void acirc_topo_levels_destroy(acirc_topo_levels *topo)
-{
-    for (int i = 0; i < topo->nlevels; i++)
-        free(topo->levels[i]);
-    free(topo->levels);
-    free(topo->level_sizes);
-    free(topo);
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // acirc info calculations
 
-static size_t acirc_depth_helper(const acirc *const c, acircref ref, size_t *memo, bool *seen)
+static size_t acirc_depth_helper(const acirc *c, acircref ref, size_t *memo, bool *seen)
 {
     if (seen[ref])
         return memo[ref];
@@ -566,7 +248,7 @@ static size_t acirc_depth_helper(const acirc *const c, acircref ref, size_t *mem
     return ret;
 }
 
-size_t acirc_depth(const acirc *const c, acircref ref)
+size_t acirc_depth(const acirc *c, acircref ref)
 {
     size_t memo[c->nrefs];
     bool   seen[c->nrefs];
@@ -574,7 +256,7 @@ size_t acirc_depth(const acirc *const c, acircref ref)
     return acirc_depth_helper(c, ref, memo, seen);
 }
 
-static size_t acirc_degree_helper(const acirc *const c, acircref ref, size_t *const memo, bool *const seen)
+static size_t acirc_degree_helper(const acirc *c, acircref ref, size_t *memo, bool *seen)
 {
     if (seen[ref])
         return memo[ref];
@@ -604,7 +286,7 @@ static size_t acirc_degree_helper(const acirc *const c, acircref ref, size_t *co
     return ret;
 }
 
-size_t acirc_degree(const acirc *const c, acircref ref)
+size_t acirc_degree(const acirc *c, acircref ref)
 {
     size_t memo[c->nrefs];
     bool   seen[c->nrefs];
@@ -612,7 +294,7 @@ size_t acirc_degree(const acirc *const c, acircref ref)
     return acirc_degree_helper(c, ref, memo, seen);
 }
 
-size_t acirc_max_degree(const acirc *const c)
+size_t acirc_max_degree(const acirc *c)
 {
     size_t memo[c->nrefs];
     bool   seen[c->nrefs];
@@ -627,14 +309,14 @@ size_t acirc_max_degree(const acirc *const c)
     return ret;
 }
 
-size_t acirc_var_degree(acirc *const c, acircref ref, input_id id)
+size_t acirc_var_degree(acirc *c, acircref ref, acircref id)
 {
     if (!c->_degree_memo_allocated)
         degree_memo_allocate(c);
     if (c->_degree_memoed[id][ref])
         return c->_degree_memo[id][ref];
 
-    const struct acirc_args_t *const gate = &c->gates[ref];
+    const struct acirc_args_t *gate = &c->gates[ref];
     switch (gate->op) {
     case OP_INPUT:
         return (gate->args[0] == id) ? 1 : 0;
@@ -666,14 +348,14 @@ size_t acirc_var_degree(acirc *const c, acircref ref, input_id id)
     }
 }
 
-size_t acirc_const_degree(acirc *const c, acircref ref)
+size_t acirc_const_degree(acirc *c, acircref ref)
 {
     if (!c->_degree_memo_allocated)
         degree_memo_allocate(c);
     if (c->_degree_memoed[c->ninputs][ref])
         return c->_degree_memo[c->ninputs][ref];
 
-    const struct acirc_args_t *const gate = &c->gates[ref];
+    const struct acirc_args_t *gate = &c->gates[ref];
     switch (gate->op) {
     case OP_INPUT:
         return 0;
@@ -701,7 +383,7 @@ size_t acirc_const_degree(acirc *const c, acircref ref)
     }
 }
 
-size_t acirc_max_var_degree(acirc *const c, input_id id)
+size_t acirc_max_var_degree(acirc *c, acircref id)
 {
     size_t ret = 0;
     for (size_t i = 0; i < c->noutputs; i++) {
@@ -712,7 +394,7 @@ size_t acirc_max_var_degree(acirc *const c, input_id id)
     return ret;
 }
 
-size_t acirc_max_const_degree(acirc *const c)
+size_t acirc_max_const_degree(acirc *c)
 {
     size_t ret = 0;
     for (size_t i = 0; i < c->noutputs; i++) {
@@ -723,7 +405,7 @@ size_t acirc_max_const_degree(acirc *const c)
     return ret;
 }
 
-size_t acirc_delta(acirc *const c)
+size_t acirc_delta(acirc *c)
 {
     size_t delta = acirc_max_const_degree(c);
     for (size_t i = 0; i < c->ninputs; i++) {
@@ -732,12 +414,12 @@ size_t acirc_delta(acirc *const c)
     return delta;
 }
 
-static size_t acirc_total_degree_helper(acirc *const c, acircref ref)
+static size_t acirc_total_degree_helper(acirc *c, acircref ref)
 {
     if (c->_degree_memoed[c->ninputs][ref])
         return c->_degree_memo[c->ninputs][ref];
 
-    const struct acirc_args_t *const gate = &c->gates[ref];
+    const struct acirc_args_t *gate = &c->gates[ref];
     switch (gate->op) {
     case OP_INPUT: case OP_CONST:
         return 1;
@@ -757,7 +439,7 @@ static size_t acirc_total_degree_helper(acirc *const c, acircref ref)
     }
 }
 
-size_t acirc_max_total_degree(acirc *const c)
+size_t acirc_max_total_degree(acirc *c)
 {
     if (!c->_degree_memo_allocated)
         degree_memo_allocate(c);
@@ -774,127 +456,7 @@ size_t acirc_max_total_degree(acirc *const c)
 }
 
 ////////////////////////////////////////////////////////////////////////////////
-// acirc creation
-
-void acirc_add_test(acirc *const c, const char *const inpstr,
-                    const char *const outstr)
-{
-    if (c->ntests >= c->_test_alloc) {
-        c->testinps = acirc_realloc(c->testinps, 2 * c->_test_alloc * sizeof(int**));
-        c->testouts = acirc_realloc(c->testouts, 2 * c->_test_alloc * sizeof(int**));
-        c->_test_alloc *= 2;
-    }
-
-    int inp_len = strlen(inpstr);
-    int out_len = strlen(outstr);
-    int *inp = acirc_malloc(inp_len * sizeof(int));
-    int *out = acirc_malloc(out_len * sizeof(int));
-
-    for (int i = 0; i < inp_len; i++) {
-        inp[i] = inpstr[inp_len - 1 - i] - 48;
-    }
-    for (int i = 0; i < out_len; i++) {
-        out[i] = outstr[out_len - 1 - i] - 48;
-    }
-
-    c->testinps[c->ntests] = inp;
-    c->testouts[c->ntests] = out;
-    c->ntests += 1;
-}
-
-static void _acirc_add_input(acirc *const c, acircref ref, acircref id, bool is_plaintext)
-{
-    acircref *args;
-    /* if (g_verbose) { */
-    /*     fprintf(stderr, "%lu input%s %lu\n", ref, is_plaintext ? " plaintext" : "", id); */
-    /* } */
-    args = acirc_calloc(1, sizeof(acircref));
-    ensure_gate_space(c, ref);
-    c->nrefs++;
-    if (is_plaintext) {
-        c->gates[ref].op = OP_INPUT_PLAINTEXT;
-        c->npinputs++;
-        args[0] = id;
-    } else {
-        c->gates[ref].op = OP_INPUT;
-        c->ninputs++;
-        args[0] = id;
-    }
-    c->gates[ref].args = args;
-    c->gates[ref].nargs = 1;
-}
-
-void acirc_add_input(acirc *const c, acircref ref, acircref id)
-{
-    _acirc_add_input(c, ref, id, false);
-}
-
-void acirc_add_input_plaintext(acirc *const c, acircref ref, acircref id)
-{
-    _acirc_add_input(c, ref, id, true);
-}
-
-void acirc_add_const(acirc *const c, acircref ref, int val)
-{
-    /* if (g_verbose) { */
-    /*     fprintf(stderr, "%lu const %d\n", ref, val); */
-    /* } */
-    ensure_gate_space(c, ref);
-    if (c->nconsts >= c->_consts_alloc) {
-        c->consts = acirc_realloc(c->consts, 2 * c->_consts_alloc * sizeof(int));
-        c->_consts_alloc *= 2;
-    }
-    c->consts[c->nconsts] = val;
-    c->nrefs++;
-    c->gates[ref].op = OP_CONST;
-    acircref *args = acirc_calloc(2, sizeof(acircref));
-    args[0] = c->nconsts++;
-    args[1] = val;
-    c->gates[ref].args = args;
-    c->gates[ref].nargs = 2;
-}
-
-void acirc_add_gate(acirc *const c, acircref ref, acirc_operation op,
-                    const acircref *const refs, size_t n)
-{
-    /* if (g_verbose) { */
-    /*     fprintf(stderr, "%lu %s", ref, acirc_op2str(op)); */
-    /*     for (size_t i = 0; i < n; ++i) { */
-    /*         fprintf(stderr, " %lu", refs[i]); */
-    /*     } */
-    /*     fprintf(stderr, "\n"); */
-    /* } */
-    ensure_gate_space(c, ref);
-    c->ngates += 1;
-    c->nrefs += 1;
-    c->gates[ref].op = op;
-    acircref *args = acirc_calloc(n, sizeof(acircref));
-    memcpy(args, refs, n * sizeof(acircref));
-    c->gates[ref].args = args;
-    c->gates[ref].nargs = n;
-    c->gates[ref].is_output = false;
-}
-
-void acirc_add_output(acirc *const c, acircref ref)
-{
-    if (c->noutputs >= c->_outref_alloc) {
-        c->outrefs = acirc_realloc(c->outrefs, 2 * c->_outref_alloc * sizeof(acircref));
-        c->_outref_alloc *= 2;
-    }
-    c->outrefs[c->noutputs++] = ref;
-    c->gates[ref].is_output = true;
-}
-
-////////////////////////////////////////////////////////////////////////////////
 // helpers
-
-static void ensure_gate_space(acirc *c, acircref ref)
-{
-    if ((size_t) ref >= c->_ref_alloc) {
-        c->gates = acirc_realloc(c->gates, 2 * c->_ref_alloc * sizeof(struct acirc_args_t));
-        c->_ref_alloc *= 2;
-    }
-}
 
 acirc_operation acirc_str2op(char *s)
 {
@@ -926,60 +488,4 @@ char * acirc_op2str(acirc_operation op)
     default:
         return NULL;
     }
-}
-
-static bool in_array(int x, int *ys, size_t len) {
-    for (size_t i = 0; i < len; i++) {
-        if (x == ys[i])
-            return true;
-    }
-    return false;
-}
-
-static bool any_in_array(acircref *xs, int xlen, int *ys, size_t ylen)
-{
-    for (int i = 0; i < xlen; i++) {
-        if (in_array(xs[i], ys, ylen))
-            return true;
-    }
-    return false;
-}
-
-static void array_printstring_rev(int *xs, size_t n)
-{
-    for (int i = n-1; i >= 0; i--)
-        printf("%d", xs[i]);
-}
-
-////////////////////////////////////////////////////////////////////////////////
-// custom allocators that complain when they fail
-
-static void* acirc_calloc(size_t nmemb, size_t size)
-{
-    void *ptr = calloc(nmemb, size);
-    if (ptr == NULL) {
-        fprintf(stderr, "[acirc_calloc] couldn't allocate %lu bytes!\n", nmemb * size);
-        abort();
-    }
-    return ptr;
-}
-
-static void* acirc_malloc(size_t size)
-{
-    void *ptr = malloc(size);
-    if (ptr == NULL) {
-        fprintf(stderr, "[acirc_malloc] couldn't allocate %lu bytes!\n", size);
-        abort();
-    }
-    return ptr;
-}
-
-static void* acirc_realloc(void *ptr, size_t size)
-{
-    void *ptr_ = realloc(ptr, size);
-    if (ptr_ == NULL) {
-        fprintf(stderr, "[acirc_realloc] couldn't reallocate %lu bytes!\n", size);
-        abort();
-    }
-    return ptr_;
 }
