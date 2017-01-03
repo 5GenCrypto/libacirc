@@ -18,3 +18,9 @@ parse.c
 parse.h
 scan.c
 stamp-h1
+acirc.h
+*.log
+*.trs
+test/test_circ
+test/test_total_degree
+TAGS
