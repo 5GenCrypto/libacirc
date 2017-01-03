@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <gmp.h>
+
 int
 main(void)
 {
@@ -16,18 +18,7 @@ main(void)
     if (c == NULL)
         return 1;
 
-    result = acirc_ensure(c);
-    acirc_to_file(c, "test_circ2.acirc");
-    acirc_clear(c);
-    free(c);
-
-    c = acirc_from_file("test_circ2.acirc");
-    if (c == NULL)
-        return 1;
-
-    result = acirc_ensure(c);
-    acirc_clear(c);
-    free(c);
+    result = acirc_ensure_mpz(c);
 
     return !result;
 }

@@ -1,6 +1,6 @@
-0 input x0
-1 input x1
-2 input y0 0
-3 gate ADD 0 1
-4 gate MUL 2 3
+0 input 0
+1 input 1
+2 const 0
+3 ADD 0 1
+4 MUL 2 3
 5 output ID 4
