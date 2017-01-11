@@ -1,0 +1,9 @@
+:test 00 5
+:test 10 6
+:test 01 6
+:test 11 7
+0 input 0
+1 input 1
+2 const 5
+3 ADD 0 1 2
+:outputs 3

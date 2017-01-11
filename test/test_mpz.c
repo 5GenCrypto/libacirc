@@ -14,7 +14,7 @@ main(void)
 
     acirc_verbose(true);
 
-    c = acirc_from_file("test_circ.acirc");
+    c = acirc_from_file("circuits/test_circ.acirc");
     if (c == NULL)
         return 1;
 

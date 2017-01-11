@@ -9,7 +9,7 @@ main(void)
     acirc *c;
     size_t d;
 
-    c = acirc_from_file("test_total_degree.acirc");
+    c = acirc_from_file("circuits/test_total_degree.acirc");
     if (c == NULL)
         return 1;
     d = acirc_max_total_degree(c);
