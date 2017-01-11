@@ -95,7 +95,7 @@ bool acirc_ensure_mpz(acirc *c)
 {
     bool ok = true;
     mpz_t xs[c->ninputs];
-    mpz_t ys[c->nconsts];
+    mpz_t ys[c->consts->n];
     mpz_t rs[c->outputs->n];
     mpz_t modulus;
     const acirc_tests_t *tests = c->tests;
@@ -105,8 +105,8 @@ bool acirc_ensure_mpz(acirc *c)
 
     for (size_t i = 0; i < c->ninputs; ++i)
         mpz_init(xs[i]);
-    for (size_t i = 0; i < c->nconsts; ++i)
-        mpz_init_set_ui(ys[i], c->consts[i]);
+    for (size_t i = 0; i < c->consts->n; ++i)
+        mpz_init_set_ui(ys[i], c->consts->buf[i]);
     for (size_t i = 0; i < c->outputs->n; ++i)
         mpz_init(rs[i]);
     mpz_init_set_ui(modulus, 23); /* XXX: why 23? */

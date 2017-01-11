@@ -38,7 +38,7 @@ static int acirc_add_test(acirc *c, const char **strs, size_t n)
     return ACIRC_OK;
 }
 
-static void acirc_add_outputs(acirc *c, const char **strs, size_t n)
+static int acirc_add_outputs(acirc *c, const char **strs, size_t n)
 {
     acirc_outputs_t *outputs = c->outputs;
     for (size_t i = 0; i < n; ++i) {
@@ -49,19 +49,19 @@ static void acirc_add_outputs(acirc *c, const char **strs, size_t n)
         }
         outputs->buf[outputs->n++] = ref;
     }
+    return ACIRC_OK;
 }
 
 int acirc_add_command(acirc *c, const char *cmd, const char **strs, size_t n)
 {
     if (strcmp(cmd, ":test") == 0) {
-        acirc_add_test(c, strs, n);
+        return acirc_add_test(c, strs, n);
     } else if (strcmp(cmd, ":outputs") == 0) {
-        acirc_add_outputs(c, strs, n);
+        return acirc_add_outputs(c, strs, n);
     } else {
         fprintf(stderr, "error: unknown command '%s'\n", cmd);
         return ACIRC_ERR;
     }
-    return ACIRC_OK;
 }
 
 static int _acirc_add_input(acirc *c, acircref ref, acircref id, bool is_plaintext)
@@ -96,16 +96,18 @@ int acirc_add_plaintext(acirc *c, acircref ref, acircref id)
 
 int acirc_add_const(acirc *c, acircref ref, int val)
 {
-    ensure_gate_space(c, ref);
-    if (c->nconsts >= c->_consts_alloc) {
-        c->consts = acirc_realloc(c->consts, 2 * c->_consts_alloc * sizeof(int));
-        c->_consts_alloc *= 2;
+    acirc_consts_t *consts = c->consts;
+    if (consts->n >= consts->_alloc) {
+        consts->_alloc *= 2;
+        consts->buf = acirc_realloc(consts->buf, consts->_alloc * sizeof(int));
     }
-    c->consts[c->nconsts] = val;
+    consts->buf[consts->n] = val;
     c->nrefs++;
+    
+    ensure_gate_space(c, ref);
     c->gates[ref].op = OP_CONST;
     acircref *args = acirc_calloc(2, sizeof(acircref));
-    args[0] = c->nconsts++;
+    args[0] = consts->n++;
     args[1] = val;
     c->gates[ref].args = args;
     c->gates[ref].nargs = 2;

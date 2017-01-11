@@ -51,16 +51,29 @@ static void acirc_free_outputs(acirc_outputs_t *o)
     free(o);
 }
 
+static acirc_consts_t * acirc_new_consts(void)
+{
+    acirc_consts_t *c = acirc_calloc(1, sizeof(acirc_consts_t));
+    c->_alloc = 2;
+    c->buf = acirc_calloc(c->_alloc, sizeof(int));
+    c->n = 0;
+    return c;
+}
+
+static void acirc_free_consts(acirc_consts_t *c)
+{
+    free(c->buf);
+    free(c);
+}
+
 void acirc_init(acirc *c)
 {
     c->ninputs  = 0;
-    c->nconsts  = 0;
     c->ngates   = 0;
     c->nrefs    = 0;
-     c->_ref_alloc    = 2;
-     c->_consts_alloc = 2;
-     c->gates    = acirc_malloc(c->_ref_alloc    * sizeof(struct acirc_gate_t));
-    c->consts   = acirc_malloc(c->_consts_alloc * sizeof(int));
+    c->_ref_alloc = 2;
+    c->gates = acirc_malloc(c->_ref_alloc    * sizeof(struct acirc_gate_t));
+    c->consts = acirc_new_consts();
     c->outputs = acirc_new_outputs();
     c->tests = acirc_new_tests();
     c->_degree_memo_allocated = false;
@@ -85,7 +98,7 @@ void acirc_clear(acirc *c)
     free(c->gates);
     acirc_free_outputs(c->outputs);
     acirc_free_tests(c->tests);
-    free(c->consts);
+    acirc_free_consts(c->consts);
     if (c->_degree_memo_allocated) {
         for (size_t i = 0; i < c->ninputs + 1; i++) {
             free(c->_degree_memo[i]);
