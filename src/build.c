@@ -38,14 +38,17 @@ static int acirc_add_test(acirc *c, const char **strs, size_t n)
     return ACIRC_OK;
 }
 
-static void acirc_add_output(acirc *c, acircref ref)
+static void acirc_add_output(acirc *c, const char **strs, size_t n)
 {
-    if (c->noutputs >= c->_outref_alloc) {
-        c->outrefs = acirc_realloc(c->outrefs, 2 * c->_outref_alloc * sizeof(acircref));
-        c->_outref_alloc *= 2;
+    for (size_t i = 0; i < n; ++i) {
+        acircref ref = atoi(strs[i]);
+        if (c->noutputs >= c->_outref_alloc) {
+            c->outrefs = acirc_realloc(c->outrefs, 2 * c->_outref_alloc * sizeof(acircref));
+            c->_outref_alloc *= 2;
+        }
+        c->outrefs[c->noutputs++] = ref;
+        c->gates[ref].is_output = true;
     }
-    c->outrefs[c->noutputs++] = ref;
-    c->gates[ref].is_output = true;
 }
 
 int acirc_add_command(acirc *c, const char *cmd, const char **strs, size_t n)
@@ -53,9 +56,7 @@ int acirc_add_command(acirc *c, const char *cmd, const char **strs, size_t n)
     if (strcmp(cmd, ":test") == 0) {
         acirc_add_test(c, strs, n);
     } else if (strcmp(cmd, ":outputs") == 0) {
-        for (size_t i = 0; i < n; ++i) {
-            acirc_add_output(c, atoi(strs[i]));
-        }
+        acirc_add_output(c, strs, n);
     } else {
         fprintf(stderr, "error: unknown command '%s'\n", cmd);
         return ACIRC_ERR;
