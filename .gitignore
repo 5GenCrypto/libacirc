@@ -23,4 +23,6 @@ acirc.h
 *.trs
 test/test_circ
 test/test_total_degree
+test/test_mpz
 TAGS
+.dirstamp
