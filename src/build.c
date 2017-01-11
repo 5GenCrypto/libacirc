@@ -25,6 +25,8 @@ int acirc_add_input(acirc *c, acircref ref, acircref id)
     gate->op = OP_INPUT;
     gate->args = args;
     gate->nargs = 1;
+    gate->name = NULL;
+    gate->external = NULL;
     c->ninputs++;
     return ACIRC_OK;
 }
@@ -46,6 +48,8 @@ int acirc_add_const(acirc *c, acircref ref, int val)
     gate->op = OP_CONST;
     gate->args = args;
     gate->nargs = 2;
+    gate->name = NULL;
+    gate->external = NULL;
     consts->n++;
     return ACIRC_OK;
 }
@@ -60,6 +64,7 @@ int acirc_add_gate(acirc *c, acircref ref, acirc_operation op,
     gate->op = op;
     gate->args = args;
     gate->nargs = n;
+    gate->name = NULL;
     gate->external = NULL;
     c->gates.n++;
     return ACIRC_OK;
@@ -87,6 +92,7 @@ int acirc_add_extgate(acirc *c, acircref ref, const char *name,
     gate->op = OP_EXTERNAL;
     gate->args = args;
     gate->nargs = n;
+    gate->name = strdup(name);
     gate->external = _acirc_add_extgate(&c->extgates, ref, name, refs, n);
     if (gate->external == NULL) {
         free(gate->args);

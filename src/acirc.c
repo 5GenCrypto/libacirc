@@ -25,8 +25,32 @@ static void acirc_init_extgates(acirc_extgates_t *gates)
 
 static void acirc_clear_extgates(acirc_extgates_t *gates)
 {
-    if (gates->gates)
+    if (gates->gates) {
+        for (size_t i = 0; i < gates->n; ++i) {
+            free(gates->gates[i].name);
+        }
         free(gates->gates);
+    }
+}
+
+void acirc_add_new_extgate(acirc_extgates_t *gates, const char *name,
+                           extgate_build build, extgate_eval eval)
+{
+    size_t last = gates->n++;
+    gates->gates = acirc_realloc(gates->gates, gates->n * sizeof gates->gates[0]);
+    gates->gates[last].name = strdup(name);
+    gates->gates[last].build = build;
+    gates->gates[last].eval = eval;
+}
+
+acircref acirc_eval_extgate(const acirc_extgates_t *extgates, const acirc_gate_t *gate)
+{
+    for (size_t i = 0; i < extgates->n; ++i) {
+        if (strcmp(gate->name, extgates->gates[i].name) == 0) {
+            return extgates->gates[i].eval(gate);
+        }
+    }
+    return -1;
 }
 
 static void acirc_init_commands(acirc_commands_t *cmds)
@@ -53,6 +77,8 @@ static void acirc_clear_gates(acirc_gates_t *g)
 {
     for (size_t i = 0; i < g->n; ++i) {
         free(g->gates[i].args);
+        if (g->gates[i].name)
+            free(g->gates[i].name);
         if (g->gates[i].external)
             free(g->gates[i].external);
     }
@@ -241,6 +267,11 @@ int acirc_eval(acirc *c, acircref root, int *xs)
         case OP_SET:
             vals[ref] = vals[gate->args[0]];
             break;
+        case OP_EXTERNAL:
+            vals[ref] = acirc_eval_extgate(&c->extgates, gate);
+            if (vals[ref] == -1)
+                return -1;      /* XXX: not a good way to report an error */
+            break;
         }
     }
     return vals[root];
@@ -345,6 +376,8 @@ static size_t acirc_degree_helper(const acirc *c, acircref ref, size_t *memo, bo
     case OP_SET:
         ret = acirc_degree_helper(c, gate->args[0], memo, seen);
         break;
+    case OP_EXTERNAL:
+        abort();
     }
 
     seen[ref] = true;
