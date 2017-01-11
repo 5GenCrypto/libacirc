@@ -60,6 +60,38 @@ int acirc_add_gate(acirc *c, acircref ref, acirc_operation op,
     gate->op = op;
     gate->args = args;
     gate->nargs = n;
+    gate->external = NULL;
+    c->gates.n++;
+    return ACIRC_OK;
+}
+
+static void * _acirc_add_extgate(acirc_extgates_t *g, acircref ref,
+                                 const char *name, const acircref *refs,
+                                 size_t n)
+{
+    for (size_t i = 0; i < g->n; ++i) {
+        if (strcmp(name, g->gates[i].name) == 0) {
+            return g->gates[i].build(ref, refs, n);
+        }
+    }
+    return NULL;
+}
+
+int acirc_add_extgate(acirc *c, acircref ref, const char *name,
+                      const acircref *refs, size_t n)
+{
+    ensure_gate_space(c, ref);
+    acircref *args = acirc_calloc(n, sizeof args[0]);
+    memcpy(args, refs, n * sizeof args[0]);
+    acirc_gate_t *gate = &c->gates.gates[ref];
+    gate->op = OP_EXTERNAL;
+    gate->args = args;
+    gate->nargs = n;
+    gate->external = _acirc_add_extgate(&c->extgates, ref, name, refs, n);
+    if (gate->external == NULL) {
+        free(gate->args);
+        return ACIRC_ERR;
+    }
     c->gates.n++;
     return ACIRC_OK;
 }
