@@ -41,14 +41,13 @@ struct ll {
     acircref val;
     char *num;
     char *str;
-    char *cmd;
     acirc_operation op;
     struct ll *ll;
 };
 
 %token ENDL
 %token INPUT PLAINTEXT CONST
-%token  <cmd>           COMMAND
+%token  <str>           COMMAND
 %token  <num>           NUM
 %token  <str>           STR
 %token  <op>            GATE

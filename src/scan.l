@@ -1,6 +1,11 @@
-
-%option noyywrap yylineno
+/* make yytext a pointer */
+%pointer
+/* not supplying yywrap() function */
+%option noyywrap
+%option yylineno
 %option always-interactive
+
+%x command
 
 %{
 #include "acirc.h"
@@ -20,11 +25,16 @@ ADD|SUB|MUL|ID {
 } 
 
 \n       { return ENDL; }
-[ \r\t]+ { }
-#.*\n    { }
+[ \r\t]+                        /* ignore whitespace */
+#.*\n                           /* ignore comments */
 
 [0-9]+      { yylval.num = strdup(yytext); return NUM; }
 [a-zA-Z]+   { yylval.str = strdup(yytext); return STR; }
-:[a-zA-Z]+  { yylval.cmd = strdup(yytext); return COMMAND; }
+:[a-zA-Z]+  { yylval.str = strdup(yytext); BEGIN(command); return COMMAND; }
 
-. printf("Unrecognized character: %s\n", yytext);
+<command>{
+    [^ \r\t\n]+ { yylval.str = strdup(yytext); return STR; }
+    \n { BEGIN(INITIAL); return ENDL; }
+}
+
+. { printf("Unrecognized character: %s\n", yytext); }
