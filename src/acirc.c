@@ -15,23 +15,39 @@ void acirc_verbose(uint32_t verbose)
     g_verbose = verbose;
 }
 
+static void acirc_init_tests(acirc_tests_t *tests)
+{
+    tests->_alloc = 2;
+    tests->inps = acirc_calloc(tests->_alloc, sizeof(int *));
+    tests->outs = acirc_calloc(tests->_alloc, sizeof(int *));
+    tests->n = 0;
+}
+
+static void acirc_clear_tests(acirc_tests_t *tests)
+{
+    for (size_t i = 0; i < tests->n; ++i) {
+        free(tests->inps[i]);
+        free(tests->outs[i]);
+    }
+    free(tests->inps);
+    free(tests->outs);
+}
+
 void acirc_init(acirc *c)
 {
     c->ninputs  = 0;
     c->nconsts  = 0;
     c->ngates   = 0;
-    c->ntests   = 0;
     c->nrefs    = 0;
     c->noutputs = 0;
     c->_ref_alloc    = 2;
-    c->_test_alloc   = 2;
     c->_outref_alloc = 2;
     c->_consts_alloc = 2;
     c->outrefs  = acirc_malloc(c->_outref_alloc * sizeof(acircref));
     c->gates    = acirc_malloc(c->_ref_alloc    * sizeof(struct acirc_gate_t));
-    c->testinps = acirc_malloc(c->_test_alloc   * sizeof(int*));
-    c->testouts = acirc_malloc(c->_test_alloc   * sizeof(int*));
     c->consts   = acirc_malloc(c->_consts_alloc * sizeof(int));
+    c->tests = acirc_calloc(1, sizeof(acirc_tests_t));
+    acirc_init_tests(c->tests);
     c->_degree_memo_allocated = false;
 }
 
@@ -53,12 +69,8 @@ void acirc_clear(acirc *c)
     }
     free(c->gates);
     free(c->outrefs);
-    for (size_t i = 0; i < c->ntests; i++) {
-        free(c->testinps[i]);
-        free(c->testouts[i]);
-    }
-    free(c->testinps);
-    free(c->testouts);
+    acirc_clear_tests(c->tests);
+    free(c->tests);
     free(c->consts);
     if (c->_degree_memo_allocated) {
         for (size_t i = 0; i < c->ninputs + 1; i++) {
@@ -183,26 +195,27 @@ int acirc_eval(acirc *c, acircref root, int *xs)
 
 bool acirc_ensure(acirc *c)
 {
+    const acirc_tests_t *tests = c->tests;
     int res[c->noutputs];
     bool ok  = true;
 
     if (g_verbose)
         fprintf(stderr, "running acirc tests...\n");
 
-    for (size_t test_num = 0; test_num < c->ntests; test_num++) {
+    for (size_t test_num = 0; test_num < tests->n; test_num++) {
         bool test_ok = true;
         for (size_t i = 0; i < c->noutputs; i++) {
-            res[i] = acirc_eval(c, c->outrefs[i], c->testinps[test_num]);
-            test_ok = test_ok && (res[i] == c->testouts[test_num][i]);
+            res[i] = acirc_eval(c, c->outrefs[i], tests->inps[test_num]);
+            test_ok = test_ok && (res[i] == tests->outs[test_num][i]);
         }
 
         if (g_verbose) {
             if (!test_ok)
                 printf("\033[1;41m");
             printf("test %lu input=", test_num);
-            array_printstring_rev(c->testinps[test_num], c->ninputs);
+            array_printstring_rev(tests->inps[test_num], c->ninputs);
             printf(" expected=");
-            array_printstring_rev(c->testouts[test_num], c->noutputs);
+            array_printstring_rev(tests->outs[test_num], c->noutputs);
             printf(" got=");
             array_printstring_rev(res, c->noutputs);
             if (!test_ok)

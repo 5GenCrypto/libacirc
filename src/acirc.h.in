@@ -34,20 +34,24 @@ typedef struct acirc_gate_t {
 } acirc_gate_t;
 
 typedef struct {
+    int **inps;
+    int **outs;
+    size_t n;
+    size_t _alloc;
+} acirc_tests_t;
+
+typedef struct {
     size_t ninputs;
     size_t npinputs;
     size_t nconsts;
     size_t ngates;
     size_t nrefs;
-    size_t ntests;
     size_t noutputs;
-    struct acirc_gate_t *gates;
+    acirc_gate_t *gates;
     acircref *outrefs;
+    acirc_tests_t *tests;
     int *consts;
-    int **testinps;
-    int **testouts;
     size_t _ref_alloc; // alloc size of gates
-    size_t _test_alloc;
     size_t _outref_alloc;
     size_t _consts_alloc;
     bool _degree_memo_allocated;

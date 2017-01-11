@@ -5,29 +5,37 @@
 #include <stdlib.h>
 #include <string.h>
 
-static void acirc_add_test(acirc *c, const char *inpstr, const char *outstr)
+static int acirc_add_test(acirc *c, const char **strs, size_t n)
 {
-    if (c->ntests >= c->_test_alloc) {
-        c->testinps = acirc_realloc(c->testinps, 2 * c->_test_alloc * sizeof(int**));
-        c->testouts = acirc_realloc(c->testouts, 2 * c->_test_alloc * sizeof(int**));
-        c->_test_alloc *= 2;
+    if (n != 2) {
+        fprintf(stderr, "error: invalid number of arguments to 'test' command\n");
+        return ACIRC_ERR;
     }
 
-    int inp_len = strlen(inpstr);
-    int out_len = strlen(outstr);
+    acirc_tests_t *tests = c->tests;
+    
+    if (tests->n >= tests->_alloc) {
+        tests->inps = acirc_realloc(tests->inps, 2 * tests->_alloc * sizeof(int**));
+        tests->outs = acirc_realloc(tests->outs, 2 * tests->_alloc * sizeof(int**));
+        tests->_alloc *= 2;
+    }
+
+    int inp_len = strlen(strs[0]);
+    int out_len = strlen(strs[1]);
     int *inp = acirc_malloc(inp_len * sizeof(int));
     int *out = acirc_malloc(out_len * sizeof(int));
 
     for (int i = 0; i < inp_len; i++) {
-        inp[i] = inpstr[inp_len - 1 - i] - 48;
+        inp[i] = strs[0][inp_len - 1 - i] - 48;
     }
     for (int i = 0; i < out_len; i++) {
-        out[i] = outstr[out_len - 1 - i] - 48;
+        out[i] = strs[1][out_len - 1 - i] - 48;
     }
 
-    c->testinps[c->ntests] = inp;
-    c->testouts[c->ntests] = out;
-    c->ntests += 1;
+    tests->inps[tests->n] = inp;
+    tests->outs[tests->n] = out;
+    tests->n++;
+    return ACIRC_OK;
 }
 
 static void acirc_add_output(acirc *c, acircref ref)
@@ -43,11 +51,7 @@ static void acirc_add_output(acirc *c, acircref ref)
 int acirc_add_command(acirc *c, const char *cmd, const char **strs, size_t n)
 {
     if (strcmp(cmd, ":test") == 0) {
-        if (n != 2) {
-            fprintf(stderr, "error: invalid number of arguments to 'test' command");
-            return ACIRC_ERR;
-        }
-        acirc_add_test(c, strs[0], strs[1]);
+        acirc_add_test(c, strs, n);
     } else if (strcmp(cmd, ":outputs") == 0) {
         for (size_t i = 0; i < n; ++i) {
             acirc_add_output(c, atoi(strs[i]));
