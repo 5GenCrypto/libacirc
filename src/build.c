@@ -40,13 +40,14 @@ static int acirc_add_test(acirc *c, const char **strs, size_t n)
 
 static void acirc_add_output(acirc *c, const char **strs, size_t n)
 {
+    acirc_outputs_t *outputs = c->outputs;
     for (size_t i = 0; i < n; ++i) {
         acircref ref = atoi(strs[i]);
-        if (c->noutputs >= c->_outref_alloc) {
-            c->outrefs = acirc_realloc(c->outrefs, 2 * c->_outref_alloc * sizeof(acircref));
-            c->_outref_alloc *= 2;
+        if (outputs->n >= outputs->_alloc) {
+            outputs->buf = acirc_realloc(outputs->buf, 2 * outputs->_alloc * sizeof(acircref));
+            outputs->_alloc *= 2;
         }
-        c->outrefs[c->noutputs++] = ref;
+        outputs->buf[outputs->n++] = ref;
         c->gates[ref].is_output = true;
     }
 }

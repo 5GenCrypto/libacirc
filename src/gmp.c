@@ -96,7 +96,7 @@ bool acirc_ensure_mpz(acirc *c)
     bool ok = true;
     mpz_t xs[c->ninputs];
     mpz_t ys[c->nconsts];
-    mpz_t rs[c->noutputs];
+    mpz_t rs[c->outputs->n];
     mpz_t modulus;
     const acirc_tests_t *tests = c->tests;
 
@@ -107,7 +107,7 @@ bool acirc_ensure_mpz(acirc *c)
         mpz_init(xs[i]);
     for (size_t i = 0; i < c->nconsts; ++i)
         mpz_init_set_ui(ys[i], c->consts[i]);
-    for (size_t i = 0; i < c->noutputs; ++i)
+    for (size_t i = 0; i < c->outputs->n; ++i)
         mpz_init(rs[i]);
     mpz_init_set_ui(modulus, 23); /* XXX: why 23? */
 
@@ -115,8 +115,8 @@ bool acirc_ensure_mpz(acirc *c)
         bool test_ok = true;
         for (size_t i = 0; i < c->ninputs; ++i)
             mpz_set_ui(xs[i], tests->inps[test_num][i]);
-        for (size_t i = 0; i < c->noutputs; i++) {
-            acirc_eval_mpz_mod(rs[i], c, c->outrefs[i], (const mpz_t *) xs,
+        for (size_t i = 0; i < c->outputs->n; i++) {
+            acirc_eval_mpz_mod(rs[i], c, c->outputs->buf[i], (const mpz_t *) xs,
                                (const mpz_t *) ys, modulus);
             test_ok = test_ok && (mpz_cmp_ui(rs[i], tests->outs[test_num][i]) == 0);
         }
@@ -127,9 +127,9 @@ bool acirc_ensure_mpz(acirc *c)
             printf("test %lu input=", test_num);
             array_printstring_rev(tests->inps[test_num], c->ninputs);
             printf(" expected=");
-            array_printstring_rev(tests->outs[test_num], c->noutputs);
+            array_printstring_rev(tests->outs[test_num], c->outputs->n);
             printf(" got=");
-            array_printstring_rev_mpz(rs, c->noutputs);
+            array_printstring_rev_mpz(rs, c->outputs->n);
             if (!test_ok)
                 printf("\033[0m");
             puts("");

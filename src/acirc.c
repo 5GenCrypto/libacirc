@@ -15,22 +15,40 @@ void acirc_verbose(uint32_t verbose)
     g_verbose = verbose;
 }
 
-static void acirc_init_tests(acirc_tests_t *tests)
+static acirc_tests_t * acirc_new_tests(void)
 {
-    tests->_alloc = 2;
-    tests->inps = acirc_calloc(tests->_alloc, sizeof(int *));
-    tests->outs = acirc_calloc(tests->_alloc, sizeof(int *));
-    tests->n = 0;
+    acirc_tests_t *t = acirc_calloc(1, sizeof(acirc_tests_t));
+    t->_alloc = 2;
+    t->inps = acirc_calloc(t->_alloc, sizeof(int *));
+    t->outs = acirc_calloc(t->_alloc, sizeof(int *));
+    t->n = 0;
+    return t;
 }
 
-static void acirc_clear_tests(acirc_tests_t *tests)
+static void acirc_free_tests(acirc_tests_t *t)
 {
-    for (size_t i = 0; i < tests->n; ++i) {
-        free(tests->inps[i]);
-        free(tests->outs[i]);
+    for (size_t i = 0; i < t->n; ++i) {
+        free(t->inps[i]);
+        free(t->outs[i]);
     }
-    free(tests->inps);
-    free(tests->outs);
+    free(t->inps);
+    free(t->outs);
+    free(t);
+}
+
+static acirc_outputs_t * acirc_new_outputs(void)
+{
+    acirc_outputs_t *o = acirc_calloc(1, sizeof(acirc_outputs_t));
+    o->_alloc = 2;
+    o->buf = acirc_calloc(o->_alloc, sizeof(acircref));
+    o->n = 0;
+    return o;
+}
+
+static void acirc_free_outputs(acirc_outputs_t *o)
+{
+    free(o->buf);
+    free(o);
 }
 
 void acirc_init(acirc *c)
@@ -39,15 +57,12 @@ void acirc_init(acirc *c)
     c->nconsts  = 0;
     c->ngates   = 0;
     c->nrefs    = 0;
-    c->noutputs = 0;
-    c->_ref_alloc    = 2;
-    c->_outref_alloc = 2;
-    c->_consts_alloc = 2;
-    c->outrefs  = acirc_malloc(c->_outref_alloc * sizeof(acircref));
-    c->gates    = acirc_malloc(c->_ref_alloc    * sizeof(struct acirc_gate_t));
+     c->_ref_alloc    = 2;
+     c->_consts_alloc = 2;
+     c->gates    = acirc_malloc(c->_ref_alloc    * sizeof(struct acirc_gate_t));
     c->consts   = acirc_malloc(c->_consts_alloc * sizeof(int));
-    c->tests = acirc_calloc(1, sizeof(acirc_tests_t));
-    acirc_init_tests(c->tests);
+    c->outputs = acirc_new_outputs();
+    c->tests = acirc_new_tests();
     c->_degree_memo_allocated = false;
 }
 
@@ -68,9 +83,8 @@ void acirc_clear(acirc *c)
         free(c->gates[i].args);
     }
     free(c->gates);
-    free(c->outrefs);
-    acirc_clear_tests(c->tests);
-    free(c->tests);
+    acirc_free_outputs(c->outputs);
+    acirc_free_tests(c->tests);
     free(c->consts);
     if (c->_degree_memo_allocated) {
         for (size_t i = 0; i < c->ninputs + 1; i++) {
@@ -137,8 +151,8 @@ bool acirc_to_file(const acirc *c, const char *fname)
         }
     }
     fprintf(f, ":outputs");
-    for (size_t i = 0; i < c->noutputs; ++i) {
-        fprintf(f, " %ld", c->outrefs[i]);
+    for (size_t i = 0; i < c->outputs->n; ++i) {
+        fprintf(f, " %ld", c->outputs->buf[i]);
     }
     fprintf(f, "\n");
     fclose(f);
@@ -196,7 +210,7 @@ int acirc_eval(acirc *c, acircref root, int *xs)
 bool acirc_ensure(acirc *c)
 {
     const acirc_tests_t *tests = c->tests;
-    int res[c->noutputs];
+    int res[c->outputs->n];
     bool ok  = true;
 
     if (g_verbose)
@@ -204,8 +218,8 @@ bool acirc_ensure(acirc *c)
 
     for (size_t test_num = 0; test_num < tests->n; test_num++) {
         bool test_ok = true;
-        for (size_t i = 0; i < c->noutputs; i++) {
-            res[i] = acirc_eval(c, c->outrefs[i], tests->inps[test_num]);
+        for (size_t i = 0; i < c->outputs->n; i++) {
+            res[i] = acirc_eval(c, c->outputs->buf[i], tests->inps[test_num]);
             test_ok = test_ok && (res[i] == tests->outs[test_num][i]);
         }
 
@@ -215,9 +229,9 @@ bool acirc_ensure(acirc *c)
             printf("test %lu input=", test_num);
             array_printstring_rev(tests->inps[test_num], c->ninputs);
             printf(" expected=");
-            array_printstring_rev(tests->outs[test_num], c->noutputs);
+            array_printstring_rev(tests->outs[test_num], c->outputs->n);
             printf(" got=");
-            array_printstring_rev(res, c->noutputs);
+            array_printstring_rev(res, c->outputs->n);
             if (!test_ok)
                 printf("\033[0m");
             puts("");
@@ -313,8 +327,8 @@ size_t acirc_max_degree(const acirc *c)
     bool   seen[c->nrefs];
     memset(seen, '\0', sizeof seen);
     size_t ret = 0;
-    for (size_t i = 0; i < c->noutputs; i++) {
-        size_t tmp = acirc_degree_helper(c, c->outrefs[i], memo, seen);
+    for (size_t i = 0; i < c->outputs->n; i++) {
+        size_t tmp = acirc_degree_helper(c, c->outputs->buf[i], memo, seen);
         if (tmp > ret)
             ret = tmp;
     }
@@ -399,8 +413,8 @@ size_t acirc_const_degree(acirc *c, acircref ref)
 size_t acirc_max_var_degree(acirc *c, acircref id)
 {
     size_t ret = 0;
-    for (size_t i = 0; i < c->noutputs; i++) {
-        size_t tmp = acirc_var_degree(c, c->outrefs[i], id);
+    for (size_t i = 0; i < c->outputs->n; i++) {
+        size_t tmp = acirc_var_degree(c, c->outputs->buf[i], id);
         if (tmp > ret)
             ret = tmp;
     }
@@ -410,8 +424,8 @@ size_t acirc_max_var_degree(acirc *c, acircref id)
 size_t acirc_max_const_degree(acirc *c)
 {
     size_t ret = 0;
-    for (size_t i = 0; i < c->noutputs; i++) {
-        size_t tmp = acirc_const_degree(c, c->outrefs[i]);
+    for (size_t i = 0; i < c->outputs->n; i++) {
+        size_t tmp = acirc_const_degree(c, c->outputs->buf[i]);
         if (tmp > ret)
             ret = tmp;
     }
@@ -460,8 +474,8 @@ size_t acirc_max_total_degree(acirc *c)
     memset(c->_degree_memoed[c->ninputs], '\0', c->nrefs * sizeof(bool));
 
     size_t ret = 0;
-    for (size_t i = 0; i < c->noutputs; ++i) {
-        size_t tmp = acirc_total_degree_helper(c, c->outrefs[i]);
+    for (size_t i = 0; i < c->outputs->n; ++i) {
+        size_t tmp = acirc_total_degree_helper(c, c->outputs->buf[i]);
         if (tmp > ret)
             ret = tmp;
     }
