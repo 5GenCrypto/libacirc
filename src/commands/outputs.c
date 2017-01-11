@@ -5,7 +5,7 @@
 
 static int acirc_add_outputs(acirc *c, const char **strs, size_t n)
 {
-    acirc_outputs_t *outputs = c->outputs;
+    acirc_outputs_t *outputs = &c->outputs;
     for (size_t i = 0; i < n; ++i) {
         acircref ref = atoi(strs[i]);
         if (outputs->n >= outputs->_alloc) {

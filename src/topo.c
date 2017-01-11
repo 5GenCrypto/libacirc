@@ -8,7 +8,7 @@ static void topo_helper(int ref, acircref *topo, bool *seen, size_t *i, acirc *c
 {
     if (seen[ref])
         return;
-    const struct acirc_gate_t *gate = &c->gates[ref];
+    const struct acirc_gate_t *gate = &c->gates.gates[ref];
     switch (gate->op) {
     case OP_INPUT: case OP_CONST:
         break;
@@ -17,7 +17,7 @@ static void topo_helper(int ref, acircref *topo, bool *seen, size_t *i, acirc *c
             topo_helper(gate->args[j], topo, seen, i, c);
         }
         break;
-    case OP_ID:
+    case OP_SET:
         topo_helper(gate->args[0], topo, seen, i, c);
         break;
     }
@@ -28,7 +28,7 @@ static void topo_helper(int ref, acircref *topo, bool *seen, size_t *i, acirc *c
 // returns the number of references in the topological order
 size_t acirc_topological_order(acircref *topo, acirc *c, acircref ref)
 {
-    bool seen[c->_ref_alloc];
+    bool seen[acirc_nrefs(c)];
     size_t i = 0;
     memset(seen, '\0', sizeof seen);
     topo_helper(ref, topo, seen, &i, c);
@@ -41,7 +41,7 @@ static void dependencies_helper(acircref *deps, bool *seen, int *i, acirc *c, in
 {
     if (seen[ref])
         return;
-    const struct acirc_gate_t *gate = &c->gates[ref];
+    const struct acirc_gate_t *gate = &c->gates.gates[ref];
     switch (gate->op) {
     case OP_INPUT: case OP_CONST:
         break;
@@ -54,7 +54,7 @@ static void dependencies_helper(acircref *deps, bool *seen, int *i, acirc *c, in
         }
         seen[ref] = true;
         break;
-    case OP_ID:
+    case OP_SET:
         deps[(*i)++] = gate->args[0];
         dependencies_helper(deps, seen, i, c, gate->args[0]);
         seen[ref] = true;
@@ -64,7 +64,7 @@ static void dependencies_helper(acircref *deps, bool *seen, int *i, acirc *c, in
 
 static int dependencies(acircref *deps, acirc *c, int ref)
 {
-    bool seen[c->nrefs];
+    bool seen[acirc_nrefs(c)];
     int ndeps = 0;
     memset(seen, '\0', sizeof seen);
     dependencies_helper(deps, seen, &ndeps, c, ref);
@@ -75,21 +75,21 @@ acirc_topo_levels * acirc_topological_levels(acirc *c, acircref root)
 {
     acirc_topo_levels *topo = acirc_malloc(sizeof(acirc_topo_levels));
 
-    topo->levels      = acirc_malloc(c->nrefs * sizeof(acircref));
-    topo->level_sizes = acirc_calloc(c->nrefs, sizeof(int));
-    int *level_alloc  = acirc_calloc(c->nrefs, sizeof(int));
-    acircref *topo_list = acirc_calloc(c->nrefs, sizeof(acircref));
-    acircref *deps      = acirc_malloc(2 * c->nrefs * sizeof(acircref));
+    topo->levels      = acirc_malloc(acirc_nrefs(c) * sizeof(acircref));
+    topo->level_sizes = acirc_calloc(acirc_nrefs(c), sizeof(int));
+    int *level_alloc  = acirc_calloc(acirc_nrefs(c), sizeof(int));
+    acircref *topo_list = acirc_calloc(acirc_nrefs(c), sizeof(acircref));
+    acircref *deps      = acirc_malloc(2 * acirc_nrefs(c) * sizeof(acircref));
 
     size_t max_level = 0;
     acirc_topological_order(topo_list, c, root);
 
-    for (size_t i = 0; i < c->nrefs; i++) {
+    for (size_t i = 0; i < acirc_nrefs(c); i++) {
         int ref = topo_list[i];
         int ndeps = dependencies(deps, c, ref);
 
         // find the right level for this ref
-        for (size_t j = 0; j < c->nrefs; j++) {
+        for (size_t j = 0; j < acirc_nrefs(c); j++) {
             // if the ref has a dependency in this topological level, try the next level
             bool has_dep = any_in_array(deps, ndeps, topo->levels[j], topo->level_sizes[j]);
             if (has_dep) continue;

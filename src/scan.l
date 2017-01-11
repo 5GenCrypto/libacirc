@@ -2,8 +2,11 @@
 %pointer
 /* not supplying yywrap() function */
 %option noyywrap
+ /* track line numbers */
 %option yylineno
-%option always-interactive
+%option never-interactive
+%option warn nodefault
+
 
 %x command
 
@@ -33,7 +36,8 @@ ADD|SUB|MUL|ID {
 
 <command>{
     [^ \r\t\n]+ { yylval.str = strdup(yytext); return STR; }
+    [ \r\t]+                    /* ignore whitespace */
     \n { BEGIN(INITIAL); return ENDL; }
 }
 
-. { printf("Unrecognized character: %s\n", yytext); }
+. { fprintf(stderr, "error: unrecognized character: %s\n", yytext); }

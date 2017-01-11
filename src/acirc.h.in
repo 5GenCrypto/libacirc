@@ -23,7 +23,8 @@ typedef enum acirc_operation {
     OP_ADD,
     OP_SUB,
     OP_MUL,
-    OP_ID,
+    OP_SET,
+    OP_EXTERNAL,
 } acirc_operation;
 
 typedef struct acirc_gate_t {
@@ -31,6 +32,12 @@ typedef struct acirc_gate_t {
     acircref *args;
     size_t nargs;
 } acirc_gate_t;
+
+typedef struct acirc_gates_t {
+    acirc_gate_t *gates;
+    size_t n;
+    size_t _alloc;
+} acirc_gates_t;
 
 typedef struct {
     int **inps;
@@ -63,16 +70,11 @@ typedef struct {
 
 struct acirc {
     size_t ninputs;
-    size_t npinputs;
-    size_t ngates;
-    size_t nrefs;
-    acirc_gate_t *gates;
-    acirc_tests_t *tests;
-    acirc_outputs_t *outputs;
-    acirc_consts_t *consts;
+    acirc_gates_t gates;
+    acirc_tests_t tests;
+    acirc_outputs_t outputs;
+    acirc_consts_t consts;
     acirc_commands_t commands;
-    /* acirc_modules_t *modules; */
-    size_t _ref_alloc; // alloc size of gates
     bool _degree_memo_allocated;
     size_t **_degree_memo;
     bool   **_degree_memoed;
@@ -117,6 +119,7 @@ size_t acirc_max_const_degree (acirc *c);
 size_t acirc_max_total_degree(acirc *c);
 
 size_t acirc_delta (acirc *c);
+size_t acirc_nrefs(const acirc *c);
 
 // helpers
 acirc_operation acirc_str2op(char *s);

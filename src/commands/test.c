@@ -10,7 +10,7 @@ static int acirc_add_test(acirc *c, const char **strs, size_t n)
         return ACIRC_ERR;
     }
 
-    acirc_tests_t *tests = c->tests;
+    acirc_tests_t *tests = &c->tests;
     
     if (tests->n >= tests->_alloc) {
         tests->inps = acirc_realloc(tests->inps, 2 * tests->_alloc * sizeof(int**));

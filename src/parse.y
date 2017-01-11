@@ -62,7 +62,7 @@ prog:
         |       line prog
                 ;
 
-line:           command | input | const_ | gate
+line:           command | input | const | gate
                 ;
 
 command:        COMMAND strlist ENDLS
@@ -98,7 +98,7 @@ input:          NUM INPUT NUM ENDLS
                 }
                 ;
 
-const_:         NUM CONST NUM ENDLS
+const:          NUM CONST NUM ENDLS
                 {
                     acirc_add_const(c, atoi($1), atoi($3));
                     free($1);
@@ -171,6 +171,25 @@ gate:           NUM GATE numlist ENDLS
                     free($1);
                 }
                 ;
+
+extgate:        NUM STR numlist ENDLS
+                {
+                    struct ll *list = $3;
+                    struct ll_node *node = list->start;
+                    acircref refs[list->length];
+                    for (size_t i = 0; i < list->length; ++i) {
+                        struct ll_node *tmp;
+                        refs[i] = atoi(node->data);
+                        tmp = node->next;
+                        free(node->data);
+                        free(node);
+                        node = tmp;
+                    }
+                    acirc_add_extgate(c, atoi($1), $2, refs, list->length);
+                    free(list);
+                    free($1);
+                }
+        ;
 
 ENDLS:          ENDLS ENDL
         |       ENDL
