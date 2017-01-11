@@ -24,8 +24,6 @@ void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root,
     case OP_INPUT:
         mpz_set(rop, xs[gate->args[0]]);
         break;
-    case OP_INPUT_PLAINTEXT:
-        abort();                /* FIXME: handle this case */
     case OP_CONST:
         mpz_set(rop, ys[gate->args[0]]);
         break;

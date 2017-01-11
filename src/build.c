@@ -37,6 +37,7 @@ static int acirc_add_test(acirc *c, const char **strs, size_t n)
     tests->n++;
     return ACIRC_OK;
 }
+const acirc_command_t command_test = { ":test", acirc_add_test };
 
 static int acirc_add_outputs(acirc *c, const char **strs, size_t n)
 {
@@ -51,47 +52,31 @@ static int acirc_add_outputs(acirc *c, const char **strs, size_t n)
     }
     return ACIRC_OK;
 }
+const acirc_command_t command_outputs = { ":outputs", acirc_add_outputs };
 
-int acirc_add_command(acirc *c, const char *cmd, const char **strs, size_t n)
+int acirc_add_command(acirc *c, const char *name, const char **strs, size_t n)
 {
-    if (strcmp(cmd, ":test") == 0) {
-        return acirc_add_test(c, strs, n);
-    } else if (strcmp(cmd, ":outputs") == 0) {
-        return acirc_add_outputs(c, strs, n);
-    } else {
-        fprintf(stderr, "error: unknown command '%s'\n", cmd);
-        return ACIRC_ERR;
+    for (size_t i = 0; i < c->commands.n; ++i) {
+        const acirc_command_t *cmd = &c->commands.commands[i];
+        if (strcmp(name, cmd->name) == 0)
+            return cmd->f(c, strs, n);
     }
+    fprintf(stderr, "error: unknown command '%s'\n", name);
+    return ACIRC_ERR;
 }
 
-static int _acirc_add_input(acirc *c, acircref ref, acircref id, bool is_plaintext)
+int acirc_add_input(acirc *c, acircref ref, acircref id)
 {
     acircref *args;
     args = acirc_calloc(1, sizeof(acircref));
     ensure_gate_space(c, ref);
     c->nrefs++;
-    if (is_plaintext) {
-        c->gates[ref].op = OP_INPUT_PLAINTEXT;
-        c->npinputs++;
-        args[0] = id;
-    } else {
-        c->gates[ref].op = OP_INPUT;
-        c->ninputs++;
-        args[0] = id;
-    }
+    c->gates[ref].op = OP_INPUT;
+    c->ninputs++;
+    args[0] = id;
     c->gates[ref].args = args;
     c->gates[ref].nargs = 1;
     return ACIRC_OK;
-}
-
-int acirc_add_input(acirc *c, acircref ref, acircref id)
-{
-    return _acirc_add_input(c, ref, id, false);
-}
-
-int acirc_add_plaintext(acirc *c, acircref ref, acircref id)
-{
-    return _acirc_add_input(c, ref, id, true);
 }
 
 int acirc_add_const(acirc *c, acircref ref, int val)

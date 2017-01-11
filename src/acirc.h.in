@@ -15,10 +15,10 @@
 #define ACIRC_ERR (-1)
 
 typedef ssize_t acircref;
+typedef struct acirc acirc;
 
 typedef enum acirc_operation {
     OP_INPUT,
-    OP_INPUT_PLAINTEXT,
     OP_CONST,
     OP_ADD,
     OP_SUB,
@@ -52,6 +52,16 @@ typedef struct {
 } acirc_consts_t;
 
 typedef struct {
+    char *name;
+    int (*f)(acirc *, const char **, size_t);
+} acirc_command_t;
+
+typedef struct {
+    acirc_command_t *commands;
+    size_t n;
+} acirc_commands_t;
+
+struct acirc {
     size_t ninputs;
     size_t npinputs;
     size_t ngates;
@@ -60,11 +70,13 @@ typedef struct {
     acirc_tests_t *tests;
     acirc_outputs_t *outputs;
     acirc_consts_t *consts;
+    acirc_commands_t commands;
+    /* acirc_modules_t *modules; */
     size_t _ref_alloc; // alloc size of gates
     bool _degree_memo_allocated;
     size_t **_degree_memo;
     bool   **_degree_memoed;
-} acirc;
+};
 
 typedef struct {
     int nlevels;

@@ -10,6 +10,17 @@
 extern int yyparse(acirc *);
 extern FILE *yyin;
 
+extern const acirc_command_t command_test;
+extern const acirc_command_t command_outputs;
+
+static void acirc_init_commands(acirc_commands_t *cmds)
+{
+    cmds->n = 2;
+    cmds->commands = acirc_calloc(cmds->n, sizeof(acirc_command_t));
+    cmds->commands[0] = command_test;
+    cmds->commands[1] = command_outputs;
+}
+
 void acirc_verbose(uint32_t verbose)
 {
     g_verbose = verbose;
@@ -76,6 +87,7 @@ void acirc_init(acirc *c)
     c->consts = acirc_new_consts();
     c->outputs = acirc_new_outputs();
     c->tests = acirc_new_tests();
+    acirc_init_commands(&c->commands);
     c->_degree_memo_allocated = false;
 }
 
@@ -148,9 +160,6 @@ bool acirc_to_file(const acirc *c, const char *fname)
         case OP_INPUT:
             fprintf(f, "%ld input %ld\n", i, c->gates[i].args[0]);
             break;
-        case OP_INPUT_PLAINTEXT:
-            fprintf(f, "%ld plaintext %ld\n", i, c->gates[i].args[0]);
-            break;
         case OP_CONST:
             fprintf(f, "%ld const %ld\n", i, c->gates[i].args[1]);
             break;
@@ -188,8 +197,6 @@ int acirc_eval(acirc *c, acircref root, int *xs)
         case OP_INPUT:
             vals[ref] = xs[gate->args[0]];
             break;
-        case OP_INPUT_PLAINTEXT:
-            abort();            /* XXX */
         case OP_CONST:
             vals[ref] = gate->args[1];
             break;
@@ -267,7 +274,7 @@ static size_t acirc_depth_helper(const acirc *c, acircref ref, size_t *memo, boo
     size_t ret = 0;
 
     switch (gate->op) {
-    case OP_INPUT: case OP_INPUT_PLAINTEXT: case OP_CONST:
+    case OP_INPUT: case OP_CONST:
         ret = 0;
         break;
     case OP_ADD: case OP_SUB: case OP_MUL:
@@ -304,7 +311,7 @@ static size_t acirc_degree_helper(const acirc *c, acircref ref, size_t *memo, bo
     size_t ret = 0;
     const struct acirc_gate_t *gate = &c->gates[ref];
     switch (gate->op) {
-    case OP_INPUT: case OP_INPUT_PLAINTEXT: case OP_CONST:
+    case OP_INPUT: case OP_CONST:
         ret = 1;
         break;
     case OP_ADD: case OP_SUB: case OP_MUL:
