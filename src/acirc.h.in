@@ -30,7 +30,6 @@ typedef struct acirc_gate_t {
     acirc_operation op;
     acircref *args;
     size_t nargs;
-    bool is_output;
 } acirc_gate_t;
 
 typedef struct {
@@ -52,14 +51,11 @@ typedef struct {
     size_t nconsts;
     size_t ngates;
     size_t nrefs;
-    /* size_t noutputs; */
     acirc_gate_t *gates;
-    /* acircref *outrefs; */
     acirc_tests_t *tests;
     acirc_outputs_t *outputs;
     int *consts;
     size_t _ref_alloc; // alloc size of gates
-    /* size_t _outref_alloc; */
     size_t _consts_alloc;
     bool _degree_memo_allocated;
     size_t **_degree_memo;

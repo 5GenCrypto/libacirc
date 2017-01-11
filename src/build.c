@@ -38,7 +38,7 @@ static int acirc_add_test(acirc *c, const char **strs, size_t n)
     return ACIRC_OK;
 }
 
-static void acirc_add_output(acirc *c, const char **strs, size_t n)
+static void acirc_add_outputs(acirc *c, const char **strs, size_t n)
 {
     acirc_outputs_t *outputs = c->outputs;
     for (size_t i = 0; i < n; ++i) {
@@ -48,7 +48,6 @@ static void acirc_add_output(acirc *c, const char **strs, size_t n)
             outputs->_alloc *= 2;
         }
         outputs->buf[outputs->n++] = ref;
-        c->gates[ref].is_output = true;
     }
 }
 
@@ -57,7 +56,7 @@ int acirc_add_command(acirc *c, const char *cmd, const char **strs, size_t n)
     if (strcmp(cmd, ":test") == 0) {
         acirc_add_test(c, strs, n);
     } else if (strcmp(cmd, ":outputs") == 0) {
-        acirc_add_output(c, strs, n);
+        acirc_add_outputs(c, strs, n);
     } else {
         fprintf(stderr, "error: unknown command '%s'\n", cmd);
         return ACIRC_ERR;
@@ -124,7 +123,6 @@ int acirc_add_gate(acirc *c, acircref ref, acirc_operation op,
     memcpy(args, refs, n * sizeof(acircref));
     c->gates[ref].args = args;
     c->gates[ref].nargs = n;
-    c->gates[ref].is_output = false;
     return ACIRC_OK;
 }
 
