@@ -1,5 +1,7 @@
 #include "acirc.h"
 #include "utils.h"
+#include "commands/outputs.h"
+#include "commands/test.h"
 
 #include <assert.h>
 #include <math.h>
@@ -9,9 +11,6 @@
 
 extern int yyparse(acirc *);
 extern FILE *yyin;
-
-extern const acirc_command_t command_test;
-extern const acirc_command_t command_outputs;
 
 static void acirc_init_commands(acirc_commands_t *cmds)
 {
@@ -154,6 +153,7 @@ bool acirc_to_file(const acirc *c, const char *fname)
     f = fopen(fname, "w");
     if (f == NULL)
         return false;
+    acirc_add_tests_to_file(c->tests, c->ninputs, c->outputs->n, f);
     for (size_t i = 0; i < c->nrefs; ++i) {
         const acirc_operation op = c->gates[i].op;
         switch (op) {
@@ -172,11 +172,7 @@ bool acirc_to_file(const acirc *c, const char *fname)
             break;
         }
     }
-    fprintf(f, ":outputs");
-    for (size_t i = 0; i < c->outputs->n; ++i) {
-        fprintf(f, " %ld", c->outputs->buf[i]);
-    }
-    fprintf(f, "\n");
+    acirc_add_outputs_to_file(c->outputs, f);
     fclose(f);
     return ret;
 }

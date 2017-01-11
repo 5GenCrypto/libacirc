@@ -5,7 +5,7 @@ AC_CONFIG_HEADERS([src/config.h])
 AC_CONFIG_SRCDIR([src/])
 AC_CONFIG_AUX_DIR([build/autoconf])
 AC_CONFIG_MACRO_DIR([build/autoconf])
-AM_INIT_AUTOMAKE([foreign -Wall -Werror])
+AM_INIT_AUTOMAKE([foreign -Wall -Werror subdir-objects])
 
 AM_PROG_AR
 

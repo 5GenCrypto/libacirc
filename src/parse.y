@@ -46,7 +46,7 @@ struct ll {
 };
 
 %token ENDL
-%token INPUT PLAINTEXT CONST
+%token INPUT CONST
 %token  <str>           COMMAND
 %token  <num>           NUM
 %token  <str>           STR
@@ -62,7 +62,7 @@ prog:
         |       line prog
                 ;
 
-line:           command | input | plaintext | const_ | gate
+line:           command | input | const_ | gate
                 ;
 
 command:        COMMAND strlist ENDLS
@@ -93,14 +93,6 @@ command:        COMMAND strlist ENDLS
 input:          NUM INPUT NUM ENDLS
                 {
                     acirc_add_input(c, atoi($1), atoi($3));
-                    free($1);
-                    free($3);
-                }
-                ;
-
-plaintext:      NUM PLAINTEXT NUM ENDLS
-                {
-                    acirc_add_plaintext(c, atoi($1), atoi($3));
                     free($1);
                     free($3);
                 }

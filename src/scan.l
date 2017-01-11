@@ -16,7 +16,6 @@
 %%
 
 input       { return INPUT; }
-plaintext   { return PLAINTEXT; }
 const       { return CONST; }
 
 ADD|SUB|MUL|ID {

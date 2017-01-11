@@ -5,55 +5,6 @@
 #include <stdlib.h>
 #include <string.h>
 
-static int acirc_add_test(acirc *c, const char **strs, size_t n)
-{
-    if (n != 2) {
-        fprintf(stderr, "error: invalid number of arguments to 'test' command\n");
-        return ACIRC_ERR;
-    }
-
-    acirc_tests_t *tests = c->tests;
-    
-    if (tests->n >= tests->_alloc) {
-        tests->inps = acirc_realloc(tests->inps, 2 * tests->_alloc * sizeof(int**));
-        tests->outs = acirc_realloc(tests->outs, 2 * tests->_alloc * sizeof(int**));
-        tests->_alloc *= 2;
-    }
-
-    int inp_len = strlen(strs[0]);
-    int out_len = strlen(strs[1]);
-    int *inp = acirc_malloc(inp_len * sizeof(int));
-    int *out = acirc_malloc(out_len * sizeof(int));
-
-    for (int i = 0; i < inp_len; i++) {
-        inp[i] = strs[0][inp_len - 1 - i] - 48;
-    }
-    for (int i = 0; i < out_len; i++) {
-        out[i] = strs[1][out_len - 1 - i] - 48;
-    }
-
-    tests->inps[tests->n] = inp;
-    tests->outs[tests->n] = out;
-    tests->n++;
-    return ACIRC_OK;
-}
-const acirc_command_t command_test = { ":test", acirc_add_test };
-
-static int acirc_add_outputs(acirc *c, const char **strs, size_t n)
-{
-    acirc_outputs_t *outputs = c->outputs;
-    for (size_t i = 0; i < n; ++i) {
-        acircref ref = atoi(strs[i]);
-        if (outputs->n >= outputs->_alloc) {
-            outputs->buf = acirc_realloc(outputs->buf, 2 * outputs->_alloc * sizeof(acircref));
-            outputs->_alloc *= 2;
-        }
-        outputs->buf[outputs->n++] = ref;
-    }
-    return ACIRC_OK;
-}
-const acirc_command_t command_outputs = { ":outputs", acirc_add_outputs };
-
 int acirc_add_command(acirc *c, const char *name, const char **strs, size_t n)
 {
     for (size_t i = 0; i < c->commands.n; ++i) {
