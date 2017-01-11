@@ -8,7 +8,7 @@ static void topo_helper(int ref, acircref *topo, bool *seen, size_t *i, acirc *c
 {
     if (seen[ref])
         return;
-    const struct acirc_args_t *gate = &c->gates[ref];
+    const struct acirc_gate_t *gate = &c->gates[ref];
     switch (gate->op) {
     case OP_INPUT: case OP_INPUT_PLAINTEXT: case OP_CONST:
         break;
@@ -41,7 +41,7 @@ static void dependencies_helper(acircref *deps, bool *seen, int *i, acirc *c, in
 {
     if (seen[ref])
         return;
-    const struct acirc_args_t *gate = &c->gates[ref];
+    const struct acirc_gate_t *gate = &c->gates[ref];
     switch (gate->op) {
     case OP_INPUT: case OP_INPUT_PLAINTEXT: case OP_CONST:
         break;

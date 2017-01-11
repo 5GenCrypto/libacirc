@@ -8,7 +8,7 @@ uint32_t g_verbose = 0;
 void ensure_gate_space(acirc *c, acircref ref)
 {
     if ((size_t) ref >= c->_ref_alloc) {
-        c->gates = acirc_realloc(c->gates, 2 * c->_ref_alloc * sizeof(struct acirc_args_t));
+        c->gates = acirc_realloc(c->gates, 2 * c->_ref_alloc * sizeof(struct acirc_gate_t));
         c->_ref_alloc *= 2;
     }
 }

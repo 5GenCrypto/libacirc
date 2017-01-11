@@ -18,7 +18,7 @@ void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root,
         return;
     }
 
-    const struct acirc_args_t *gate = &c->gates[root];
+    const struct acirc_gate_t *gate = &c->gates[root];
     const acirc_operation op = gate->op;
     switch (op) {
     case OP_INPUT:

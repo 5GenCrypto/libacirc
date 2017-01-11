@@ -26,13 +26,12 @@ typedef enum acirc_operation {
     OP_ID,
 } acirc_operation;
 
-/* TODO: rename acirc_gate_t */
-typedef struct acirc_args_t {
+typedef struct acirc_gate_t {
     acirc_operation op;
     acircref *args;
     size_t nargs;
     bool is_output;
-} acirc_args_t;
+} acirc_gate_t;
 
 typedef struct {
     size_t ninputs;
@@ -42,7 +41,7 @@ typedef struct {
     size_t nrefs;
     size_t ntests;
     size_t noutputs;
-    struct acirc_args_t *gates;
+    struct acirc_gate_t *gates;
     acircref *outrefs;
     int *consts;
     int **testinps;

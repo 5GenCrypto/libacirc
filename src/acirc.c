@@ -28,7 +28,7 @@ void acirc_init(acirc *c)
     c->_outref_alloc = 2;
     c->_consts_alloc = 2;
     c->outrefs  = acirc_malloc(c->_outref_alloc * sizeof(acircref));
-    c->gates    = acirc_malloc(c->_ref_alloc    * sizeof(struct acirc_args_t));
+    c->gates    = acirc_malloc(c->_ref_alloc    * sizeof(struct acirc_gate_t));
     c->testinps = acirc_malloc(c->_test_alloc   * sizeof(int*));
     c->testouts = acirc_malloc(c->_test_alloc   * sizeof(int*));
     c->consts   = acirc_malloc(c->_consts_alloc * sizeof(int));
@@ -144,7 +144,7 @@ int acirc_eval(acirc *c, acircref root, int *xs)
 
     for (size_t i = 0; i < n; i++) {
         const acircref ref = topo[i];
-        const struct acirc_args_t *gate = &c->gates[ref];
+        const struct acirc_gate_t *gate = &c->gates[ref];
         switch (gate->op) {
         case OP_INPUT:
             vals[ref] = xs[gate->args[0]];
@@ -223,7 +223,7 @@ static size_t acirc_depth_helper(const acirc *c, acircref ref, size_t *memo, boo
     if (seen[ref])
         return memo[ref];
 
-    const struct acirc_args_t *gate = &c->gates[ref];
+    const struct acirc_gate_t *gate = &c->gates[ref];
     size_t ret = 0;
 
     switch (gate->op) {
@@ -262,7 +262,7 @@ static size_t acirc_degree_helper(const acirc *c, acircref ref, size_t *memo, bo
         return memo[ref];
 
     size_t ret = 0;
-    const struct acirc_args_t *gate = &c->gates[ref];
+    const struct acirc_gate_t *gate = &c->gates[ref];
     switch (gate->op) {
     case OP_INPUT: case OP_INPUT_PLAINTEXT: case OP_CONST:
         ret = 1;
@@ -316,7 +316,7 @@ size_t acirc_var_degree(acirc *c, acircref ref, acircref id)
     if (c->_degree_memoed[id][ref])
         return c->_degree_memo[id][ref];
 
-    const struct acirc_args_t *gate = &c->gates[ref];
+    const struct acirc_gate_t *gate = &c->gates[ref];
     switch (gate->op) {
     case OP_INPUT:
         return (gate->args[0] == id) ? 1 : 0;
@@ -355,7 +355,7 @@ size_t acirc_const_degree(acirc *c, acircref ref)
     if (c->_degree_memoed[c->ninputs][ref])
         return c->_degree_memo[c->ninputs][ref];
 
-    const struct acirc_args_t *gate = &c->gates[ref];
+    const struct acirc_gate_t *gate = &c->gates[ref];
     switch (gate->op) {
     case OP_INPUT:
         return 0;
@@ -419,7 +419,7 @@ static size_t acirc_total_degree_helper(acirc *c, acircref ref)
     if (c->_degree_memoed[c->ninputs][ref])
         return c->_degree_memo[c->ninputs][ref];
 
-    const struct acirc_args_t *gate = &c->gates[ref];
+    const struct acirc_gate_t *gate = &c->gates[ref];
     switch (gate->op) {
     case OP_INPUT: case OP_CONST:
         return 1;
