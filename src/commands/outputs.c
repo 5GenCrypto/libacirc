@@ -1,18 +1,21 @@
 #include "outputs.h"
 #include "utils.h"
 
+#include <assert.h>
 #include <stdlib.h>
 
 static int acirc_add_outputs(acirc *c, const char **strs, size_t n)
 {
     acirc_outputs_t *outputs = &c->outputs;
+    if (outputs->n != 0) {
+        fprintf(stderr, "error: can only use :outputs once per circuit!\n");
+        return ACIRC_ERR;
+    }
+    assert(outputs->buf == NULL);
+    outputs->n = n;
+    outputs->buf = acirc_calloc(n, sizeof outputs->buf[0]);
     for (size_t i = 0; i < n; ++i) {
-        acircref ref = atoi(strs[i]);
-        if (outputs->n >= outputs->_alloc) {
-            outputs->buf = acirc_realloc(outputs->buf, 2 * outputs->_alloc * sizeof(acircref));
-            outputs->_alloc *= 2;
-        }
-        outputs->buf[outputs->n++] = ref;
+        outputs->buf[i] = atoi(strs[i]);
     }
     return ACIRC_OK;
 }

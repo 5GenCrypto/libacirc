@@ -22,11 +22,7 @@ int acirc_add_input(acirc *c, acircref ref, acircref id)
     acircref *args = acirc_calloc(1, sizeof args[0]);
     args[0] = id;
     acirc_gate_t *gate = &c->gates.gates[ref];
-    gate->op = OP_INPUT;
-    gate->args = args;
-    gate->nargs = 1;
-    gate->name = NULL;
-    gate->external = NULL;
+    acirc_init_gate(gate, OP_INPUT, args, 1);
     c->ninputs++;
     return ACIRC_OK;
 }
@@ -45,11 +41,7 @@ int acirc_add_const(acirc *c, acircref ref, int val)
     args[0] = consts->n;
     args[1] = val;
     acirc_gate_t *gate = &c->gates.gates[ref];
-    gate->op = OP_CONST;
-    gate->args = args;
-    gate->nargs = 2;
-    gate->name = NULL;
-    gate->external = NULL;
+    acirc_init_gate(gate, OP_CONST, args, 2);
     consts->n++;
     return ACIRC_OK;
 }
@@ -61,11 +53,7 @@ int acirc_add_gate(acirc *c, acircref ref, acirc_operation op,
     acircref *args = acirc_calloc(n, sizeof args[0]);
     memcpy(args, refs, n * sizeof args[0]);
     acirc_gate_t *gate = &c->gates.gates[ref];
-    gate->op = op;
-    gate->args = args;
-    gate->nargs = n;
-    gate->name = NULL;
-    gate->external = NULL;
+    acirc_init_gate(gate, op, args, n);
     c->gates.n++;
     return ACIRC_OK;
 }
@@ -89,9 +77,7 @@ int acirc_add_extgate(acirc *c, acircref ref, const char *name,
     acircref *args = acirc_calloc(n, sizeof args[0]);
     memcpy(args, refs, n * sizeof args[0]);
     acirc_gate_t *gate = &c->gates.gates[ref];
-    gate->op = OP_EXTERNAL;
-    gate->args = args;
-    gate->nargs = n;
+    acirc_init_gate(gate, OP_EXTERNAL, args, n);
     gate->name = strdup(name);
     gate->external = _acirc_add_extgate(&c->extgates, ref, name, refs, n);
     if (gate->external == NULL) {

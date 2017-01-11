@@ -11,28 +11,25 @@ static int acirc_add_test(acirc *c, const char **strs, size_t n)
     }
 
     acirc_tests_t *tests = &c->tests;
-    
-    if (tests->n >= tests->_alloc) {
-        tests->inps = acirc_realloc(tests->inps, 2 * tests->_alloc * sizeof(int**));
-        tests->outs = acirc_realloc(tests->outs, 2 * tests->_alloc * sizeof(int**));
-        tests->_alloc *= 2;
-    }
+    const size_t last = tests->n++;
 
-    int inp_len = strlen(strs[0]);
-    int out_len = strlen(strs[1]);
-    int *inp = acirc_malloc(inp_len * sizeof(int));
-    int *out = acirc_malloc(out_len * sizeof(int));
+    tests->inps = acirc_realloc(tests->inps, tests->n * sizeof tests->inps[0]);
+    tests->outs = acirc_realloc(tests->outs, tests->n * sizeof tests->outs[0]);
 
-    for (int i = 0; i < inp_len; i++) {
+    const size_t inp_len = strlen(strs[0]);
+    const size_t out_len = strlen(strs[1]);
+    int *inp = acirc_calloc(inp_len, sizeof inp[0]);
+    int *out = acirc_calloc(out_len, sizeof out[0]);
+
+    for (size_t i = 0; i < inp_len; i++) {
         inp[i] = strs[0][inp_len - 1 - i] - 48;
     }
-    for (int i = 0; i < out_len; i++) {
+    for (size_t i = 0; i < out_len; i++) {
         out[i] = strs[1][out_len - 1 - i] - 48;
     }
 
-    tests->inps[tests->n] = inp;
-    tests->outs[tests->n] = out;
-    tests->n++;
+    tests->inps[last] = inp;
+    tests->outs[last] = out;
     return ACIRC_OK;
 }
 const acirc_command_t command_test = { ":test", acirc_add_test };

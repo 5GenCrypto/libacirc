@@ -14,6 +14,10 @@
 #define ACIRC_OK    0
 #define ACIRC_ERR (-1)
 
+/* #ifdef __cplusplus */
+/* extern "C" { */
+/* #endif */
+
 typedef ssize_t acircref;
 typedef struct acirc acirc;
 
@@ -27,15 +31,22 @@ typedef enum acirc_operation {
     OP_EXTERNAL,
 } acirc_operation;
 
+acirc_operation acirc_str2op(char *s);
+char *acirc_op2str(acirc_operation op);
+
 typedef struct {
     acirc_operation op;
     acircref *args;
     size_t nargs;
+    /* struct for external operations */
     struct {
         char *name;
         void *external;
     };
 } acirc_gate_t;
+
+void acirc_init_gate(acirc_gate_t *gate, acirc_operation op, acircref *args,
+                     size_t nargs);
 
 typedef struct {
     acirc_gate_t *gates;
@@ -58,19 +69,18 @@ typedef struct {
 
 void acirc_add_new_extgate(acirc_extgates_t *gates, const char *name,
                            extgate_build build, extgate_eval eval);
-acircref acirc_eval_extgate(const acirc_extgates_t *extgates, const acirc_gate_t *gate);
+acircref acirc_eval_extgate(const acirc_extgates_t *extgates,
+                            const acirc_gate_t *gate);
 
 typedef struct {
     int **inps;
     int **outs;
     size_t n;
-    size_t _alloc;
 } acirc_tests_t;
 
 typedef struct {
     acircref *buf;
     size_t n;
-    size_t _alloc;
 } acirc_outputs_t;
 
 typedef struct {
@@ -89,6 +99,11 @@ typedef struct {
     size_t n;
 } acirc_commands_t;
 
+typedef struct {
+    void *buf;
+    size_t n;
+} acirc_extras_t;
+
 struct acirc {
     size_t ninputs;
     acirc_gates_t gates;
@@ -97,10 +112,21 @@ struct acirc {
     acirc_consts_t consts;
     acirc_commands_t commands;
     acirc_extgates_t extgates;
+    acirc_extras_t extras;
+
     bool _degree_memo_allocated;
     size_t **_degree_memo;
     bool   **_degree_memoed;
 };
+
+void acirc_init(acirc *c);
+void acirc_clear(acirc *c);
+int acirc_parse(acirc *c, const char *fname);
+acirc * acirc_from_file(const char *fname);
+bool acirc_to_file(const acirc *c, const char *fname);
+void acirc_verbose(uint32_t verbose);
+int acirc_eval(acirc *c, acircref ref, int *xs);
+bool acirc_ensure(acirc *c);
 
 typedef struct {
     int nlevels;
@@ -108,27 +134,12 @@ typedef struct {
     int *level_sizes;
 } acirc_topo_levels;
 
-/* #ifdef __cplusplus */
-/* extern "C" { */
-/* #endif */
-
-void acirc_init(acirc *c);
-void acirc_clear(acirc *c);
-int acirc_parse(acirc *c, const char *filename);
-acirc * acirc_from_file(const char *filename);
-bool acirc_to_file(const acirc *c, const char *fname);
-void acirc_verbose(uint32_t verbose);
-
-int acirc_eval(acirc *c, acircref ref, int *xs);
-
-bool acirc_ensure(acirc *c);
-
-// topological orderings
 size_t acirc_topological_order(acircref *topo, acirc *c, acircref ref);
 acirc_topo_levels* acirc_topological_levels(acirc *c, acircref root);
 void acirc_topo_levels_destroy(acirc_topo_levels *topo);
 
-// degree calculations
+/* degree calculations */
+
 size_t acirc_depth        (const acirc *c, acircref ref);
 size_t acirc_degree       (const acirc *c, acircref ref);
 size_t acirc_var_degree   (acirc *c, acircref ref, acircref id);
@@ -140,12 +151,13 @@ size_t acirc_max_const_degree (acirc *c);
 /* computes the degree if all ops result in an additive increase */
 size_t acirc_max_total_degree(acirc *c);
 
-size_t acirc_delta (acirc *c);
+size_t acirc_delta(acirc *c);
+
+/* helper functions */
+
 size_t acirc_nrefs(const acirc *c);
 
-// helpers
-acirc_operation acirc_str2op(char *s);
-char *acirc_op2str(acirc_operation op);
+/* GMP functions */
 
 #ifdef HAVE_GMP
 void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root,

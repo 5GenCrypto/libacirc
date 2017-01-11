@@ -64,6 +64,8 @@ void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root,
     case OP_SET:
         acirc_eval_mpz_mod_memo(rop, c, gate->args[0], xs, ys, modulus, known, cache);
         break;
+    case OP_EXTERNAL:
+        abort();
     }
 }
 

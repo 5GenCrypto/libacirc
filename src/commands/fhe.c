@@ -4,6 +4,11 @@
 #include <stdio.h>
 #include <string.h>
 
+typedef struct {
+    acircref *refs;
+    size_t n;
+} acirc_fhe_plaintexts_t;
+
 static int acirc_add_fhe_plaintexts(acirc *c, const char **strs, size_t n)
 {
     (void) c; (void) strs; (void) n;

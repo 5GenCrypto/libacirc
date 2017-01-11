@@ -17,6 +17,16 @@ size_t acirc_nrefs(const acirc *c)
     return c->ninputs + c->gates.n + c->consts.n;
 }
 
+void acirc_init_gate(acirc_gate_t *gate, acirc_operation op, acircref *args,
+                     size_t nargs)
+{
+    gate->op = op;
+    gate->args = args;
+    gate->nargs = nargs;
+    gate->name = NULL;
+    gate->external = NULL;
+}
+
 static void acirc_init_extgates(acirc_extgates_t *gates)
 {
     gates->n = 0;
@@ -87,9 +97,8 @@ static void acirc_clear_gates(acirc_gates_t *g)
 
 static void acirc_init_tests(acirc_tests_t *t)
 {
-    t->_alloc = 2;
-    t->inps = acirc_calloc(t->_alloc, sizeof(int *));
-    t->outs = acirc_calloc(t->_alloc, sizeof(int *));
+    t->inps = NULL;
+    t->outs = NULL;
     t->n = 0;
 }
 
@@ -99,20 +108,22 @@ static void acirc_clear_tests(acirc_tests_t *t)
         free(t->inps[i]);
         free(t->outs[i]);
     }
-    free(t->inps);
-    free(t->outs);
+    if (t->inps)
+        free(t->inps);
+    if (t->outs)
+        free(t->outs);
 }
 
 static void acirc_init_outputs(acirc_outputs_t *o)
 {
-    o->_alloc = 2;
-    o->buf = acirc_calloc(o->_alloc, sizeof(acircref));
     o->n = 0;
+    o->buf = NULL;
 }
 
 static void acirc_clear_outputs(acirc_outputs_t *o)
 {
-    free(o->buf);
+    if (o->buf)
+        free(o->buf);
 }
 
 static void acirc_init_consts(acirc_consts_t *c)
