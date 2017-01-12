@@ -87,3 +87,13 @@ int acirc_add_extgate(acirc *c, acircref ref, const char *name,
     c->gates.n++;
     return ACIRC_OK;
 }
+
+int acirc_add_output(acirc *c, acircref ref)
+{
+    acirc_outputs_t *outputs = &c->outputs;
+    const size_t last = outputs->n;
+    outputs->n++;
+    outputs->buf = acirc_realloc(outputs->buf, outputs->n * sizeof outputs->buf[0]);
+    outputs->buf[last] = ref;
+    return ACIRC_OK;
+}
