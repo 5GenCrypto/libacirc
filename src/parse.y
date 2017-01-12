@@ -7,7 +7,6 @@
 
 %{
 #include "acirc.h"
-#include "build.h"
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
