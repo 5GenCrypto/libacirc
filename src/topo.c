@@ -12,7 +12,7 @@ static void topo_helper(int ref, acircref *topo, bool *seen, size_t *i, acirc *c
     switch (gate->op) {
     case OP_INPUT: case OP_CONST:
         break;
-    case OP_ADD: case OP_SUB: case OP_MUL:
+    case OP_ADD: case OP_SUB: case OP_MUL: case OP_EXTERNAL:
         for (size_t j = 0; j < gate->nargs; ++j) {
             topo_helper(gate->args[j], topo, seen, i, c);
         }
@@ -45,7 +45,7 @@ static void dependencies_helper(acircref *deps, bool *seen, int *i, acirc *c, in
     switch (gate->op) {
     case OP_INPUT: case OP_CONST:
         break;
-    case OP_ADD: case OP_SUB: case OP_MUL:
+    case OP_ADD: case OP_SUB: case OP_MUL: case OP_EXTERNAL:
         for (size_t j = 0; j < gate->nargs; ++j) {
             deps[(*i)++] = gate->args[j];
         }

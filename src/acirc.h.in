@@ -100,9 +100,16 @@ typedef struct {
 } acirc_commands_t;
 
 typedef struct {
-    void *buf;
+    const char *name;
+    void *data;
+} acirc_extra_t;
+
+typedef struct {
+    acirc_extra_t *extras;
     size_t n;
 } acirc_extras_t;
+
+void acirc_add_extra(acirc_extras_t *e, const char *name, void *data);
 
 struct acirc {
     size_t ninputs;

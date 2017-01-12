@@ -135,7 +135,16 @@ static void acirc_init_consts(acirc_consts_t *c)
 
 static void acirc_clear_consts(acirc_consts_t *c)
 {
-    free(c->buf);
+    if (c->buf)
+        free(c->buf);
+}
+
+void acirc_add_extra(acirc_extras_t *e, const char *name, void *data)
+{
+    const size_t last = e->n++;
+    e->extras = acirc_realloc(e->extras, e->n * sizeof e->extras[0]);
+    e->extras[last].name = name;
+    e->extras[last].data = data;
 }
 
 void acirc_init(acirc *c)

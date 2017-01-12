@@ -14,6 +14,7 @@ build.c     \
 gmp.c       \
 topo.c      \
 utils.c	    \
+commands/fhe.c     \
 commands/outputs.c \
 commands/test.c
 
