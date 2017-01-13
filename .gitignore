@@ -26,3 +26,4 @@ test/test_total_degree
 test/test_mpz
 TAGS
 .dirstamp
+vgcore.*
