@@ -11,10 +11,13 @@ main(void)
 {
     acirc *c;
     bool result;
+    FILE *fp;
 
     acirc_verbose(true);
 
-    c = acirc_from_file("circuits/test_circ.acirc");
+    fp = fopen("circuits/test_circ.acirc", "r");
+    c = acirc_fread(NULL, fp);
+    fclose(fp);
     if (c == NULL)
         return 1;
 

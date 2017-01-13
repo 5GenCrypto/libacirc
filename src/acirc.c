@@ -187,24 +187,14 @@ void acirc_clear(acirc *c)
     }
 }
 
-int acirc_parse(acirc *c, const char *filename)
+acirc * acirc_fread(acirc *c, FILE *fp)
 {
-    yyin = fopen(filename, "r");
-    if (yyin == NULL) {
-        fprintf(stderr, "error: could not open file \"%s\"\n", filename);
-        return ACIRC_ERR;
-    }
-    int ret = yyparse(c);
-    fclose(yyin);
-    return ret == 0 ? ACIRC_OK : ACIRC_ERR;
-}
-
-acirc * acirc_from_file(const char *filename)
-{
-    acirc *c = acirc_malloc(sizeof(acirc));
+    if (c == NULL)
+        c = acirc_malloc(sizeof(acirc));
     acirc_init(c);
-    int ret = acirc_parse(c, filename);
-    if (ret == ACIRC_ERR) {
+    yyin = fp;
+    if (yyparse(c) == 1) {
+        fprintf(stderr, "error: parsing circuit failed\n");
         acirc_clear(c);
         free(c);
         return NULL;
@@ -212,38 +202,31 @@ acirc * acirc_from_file(const char *filename)
     return c;
 }
 
-bool acirc_to_file(const acirc *c, const char *fname)
+int acirc_fwrite(const acirc *c, FILE *fp)
 {
-    bool ret = true;
-    FILE *f;
-
-    f = fopen(fname, "w");
-    if (f == NULL)
-        return false;
-    acirc_add_tests_to_file(&c->tests, c->ninputs, c->outputs.n, f);
+    acirc_add_tests_to_file(&c->tests, c->ninputs, c->outputs.n, fp);
     for (size_t i = 0; i < acirc_nrefs(c); ++i) {
         const acirc_gate_t *gate = &c->gates.gates[i];
         switch (gate->op) {
         case OP_INPUT:
-            fprintf(f, "%ld input %ld\n", i, gate->args[0]);
+            fprintf(fp, "%ld input %ld\n", i, gate->args[0]);
             break;
         case OP_CONST:
-            fprintf(f, "%ld const %ld\n", i, gate->args[1]);
+            fprintf(fp, "%ld const %ld\n", i, gate->args[1]);
             break;
         case OP_ADD: case OP_SUB: case OP_MUL: case OP_SET:
-            fprintf(f, "%ld %s", i, acirc_op2str(gate->op));
+            fprintf(fp, "%ld %s", i, acirc_op2str(gate->op));
             for (size_t j = 0; j < gate->nargs; ++j) {
-                fprintf(f, " %ld", gate->args[j]);
+                fprintf(fp, " %ld", gate->args[j]);
             }
-            fprintf(f, "\n");
+            fprintf(fp, "\n");
             break;
         case OP_EXTERNAL:
             abort();
         }
     }
-    acirc_add_outputs_to_file(&c->outputs, f);
-    fclose(f);
-    return ret;
+    acirc_add_outputs_to_file(&c->outputs, fp);
+    return ACIRC_OK;
 }
 
 ////////////////////////////////////////////////////////////////////////////////

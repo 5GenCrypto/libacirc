@@ -8,8 +8,11 @@ main(void)
 {
     acirc *c;
     size_t d;
+    FILE *fp;
 
-    c = acirc_from_file("circuits/test_total_degree.acirc");
+    fp = fopen("circuits/test_total_degree.acirc", "r");
+    c = acirc_fread(NULL, fp);
+    fclose(fp);
     if (c == NULL)
         return 1;
     d = acirc_max_total_degree(c);

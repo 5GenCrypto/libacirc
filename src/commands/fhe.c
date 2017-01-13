@@ -1,4 +1,4 @@
-#include "acirc.h"
+#include "fhe.h"
 #include "utils.h"
 
 #include <stdio.h>

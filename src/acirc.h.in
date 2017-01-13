@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <stdio.h>
 #include <unistd.h>
 #ifdef HAVE_GMP
 #include <gmp.h>
@@ -126,9 +127,8 @@ struct acirc {
 
 void acirc_init(acirc *c);
 void acirc_clear(acirc *c);
-int acirc_parse(acirc *c, const char *fname);
-acirc * acirc_from_file(const char *fname);
-bool acirc_to_file(const acirc *c, const char *fname);
+acirc * acirc_fread(acirc *c, FILE *fp);
+int acirc_fwrite(const acirc *c, FILE *fp);
 void acirc_verbose(uint32_t verbose);
 int acirc_eval(acirc *c, acircref ref, int *xs);
 bool acirc_ensure(acirc *c);

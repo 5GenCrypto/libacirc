@@ -9,25 +9,39 @@ main(void)
 {
     acirc *c;
     bool result;
+    FILE *fp;
 
     acirc_verbose(true);
 
-    c = acirc_from_file("circuits/test_circ.acirc");
-    if (c == NULL)
-        return 1;
+    {
+        fp = fopen("circuits/test_circ.acirc", "r");
+        c = acirc_fread(NULL, fp);
+        fclose(fp);
+        if (c == NULL)
+            return 1;
 
-    result = acirc_ensure(c);
-    acirc_to_file(c, "circuits/test_circ2.acirc");
-    acirc_clear(c);
-    free(c);
+        result = acirc_ensure(c);
 
-    c = acirc_from_file("circuits/test_circ2.acirc");
-    if (c == NULL)
-        return 1;
+        fp = fopen("circuits/test_circ2.acirc", "w");
+        acirc_fwrite(c, fp);
+        fclose(fp);
 
-    result = acirc_ensure(c);
-    acirc_clear(c);
-    free(c);
+        acirc_clear(c);
+        free(c);
+    }
+
+    {
+        fp = fopen("circuits/test_circ2.acirc", "r");
+        c = acirc_fread(NULL, fp);
+        fclose(fp);
+        if (c == NULL)
+            return 1;
+
+        result = acirc_ensure(c);
+
+        acirc_clear(c);
+        free(c);
+    }
 
     return !result;
 }
