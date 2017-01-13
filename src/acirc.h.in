@@ -38,11 +38,9 @@ typedef struct {
     acirc_operation op;
     acircref *args;
     size_t nargs;
-    /* struct for external operations */
-    struct {
-        char *name;
-        void *external;
-    };
+    /* external gate info */
+    char *name;
+    void *external;
 } acirc_gate_t;
 
 void acirc_init_gate(acirc_gate_t *gate, acirc_operation op, acircref *args,
