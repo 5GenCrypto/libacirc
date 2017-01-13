@@ -1,3 +1,5 @@
+@VALGRIND_CHECK_RULES@
+
 AUTOMAKE_OPTIONS = foreign -Wall -Werror
 AM_CFLAGS = ${DEBUG_CFLAGS} -I$(top_srcdir) -g -lgmp
 AM_LDFLAGS = $(top_builddir)/src/libacirc.la
