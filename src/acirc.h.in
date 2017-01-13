@@ -14,9 +14,9 @@
 #define ACIRC_OK    0
 #define ACIRC_ERR (-1)
 
-/* #ifdef __cplusplus */
-/* extern "C" { */
-/* #endif */
+#ifdef __cplusplus
+extern "C" {
+#endif
 
 typedef ssize_t acircref;
 typedef struct acirc acirc;
@@ -188,8 +188,8 @@ void acirc_eval_mpz_mod(mpz_t rop, acirc *c, acircref root,
 bool acirc_ensure_mpz(acirc *c);
 #endif
 
-/* #ifdef __cplusplus */
-/* } */
-/* #endif */
+#ifdef __cplusplus
+}
+#endif
 
 #endif
