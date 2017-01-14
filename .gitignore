@@ -22,6 +22,8 @@ acirc.h
 *.log
 *.trs
 test/test_circ
+test/test_builder
+test/circuits/test_builder.acirc
 test/test_total_degree
 test/test_mpz
 TAGS
