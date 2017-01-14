@@ -3,5 +3,4 @@
 2 const 0
 3 ADD 0 1
 4 MUL 2 3
-5 ID 4
-:outputs 5
+:outputs 4

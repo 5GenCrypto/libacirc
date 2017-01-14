@@ -17,16 +17,6 @@ size_t acirc_nrefs(const acirc *c)
     return c->ninputs + c->gates.n + c->consts.n;
 }
 
-void acirc_init_gate(acirc_gate_t *gate, acirc_operation op, acircref *args,
-                     size_t nargs)
-{
-    gate->op = op;
-    gate->args = args;
-    gate->nargs = nargs;
-    gate->name = NULL;
-    gate->external = NULL;
-}
-
 static void acirc_init_extgates(acirc_extgates_t *gates)
 {
     gates->n = 0;
@@ -71,6 +61,11 @@ static void acirc_init_commands(acirc_commands_t *cmds)
     cmds->commands[1] = command_outputs;
 }
 
+static void acirc_clear_commands(acirc_commands_t *cmds)
+{
+    free(cmds->commands);
+}
+
 void acirc_verbose(uint32_t verbose)
 {
     g_verbose = verbose;
@@ -83,9 +78,9 @@ static void acirc_init_gates(acirc_gates_t *g)
     g->n = 0;
 }
 
-static void acirc_clear_gates(acirc_gates_t *g)
+static void acirc_clear_gates(acirc_gates_t *g, size_t n)
 {
-    for (size_t i = 0; i < g->n; ++i) {
+    for (size_t i = 0; i < n; ++i) {
         free(g->gates[i].args);
         if (g->gates[i].name)
             free(g->gates[i].name);
@@ -149,7 +144,7 @@ void acirc_add_extra(acirc_extras_t *e, const char *name, void *data)
 
 void acirc_init(acirc *c)
 {
-    c->ninputs  = 0;
+    c->ninputs = 0;
     acirc_init_gates(&c->gates);
     acirc_init_consts(&c->consts);
     acirc_init_outputs(&c->outputs);
@@ -172,10 +167,11 @@ static void degree_memo_allocate(acirc *c)
 
 void acirc_clear(acirc *c)
 {
-    acirc_clear_gates(&c->gates);
+    acirc_clear_gates(&c->gates, acirc_nrefs(c));
     acirc_clear_outputs(&c->outputs);
     acirc_clear_tests(&c->tests);
     acirc_clear_consts(&c->consts);
+    acirc_clear_commands(&c->commands);
     acirc_clear_extgates(&c->extgates);
     if (c->_degree_memo_allocated) {
         for (size_t i = 0; i < c->ninputs + 1; i++) {

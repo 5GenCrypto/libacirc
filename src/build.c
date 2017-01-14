@@ -5,6 +5,16 @@
 #include <stdlib.h>
 #include <string.h>
 
+static void
+acirc_init_gate(acirc_gate_t *gate, acirc_operation op, acircref *args, size_t nargs)
+{
+    gate->op = op;
+    gate->args = args;
+    gate->nargs = nargs;
+    gate->name = NULL;
+    gate->external = NULL;
+}
+
 int acirc_add_command(acirc *c, const char *name, const char **strs, size_t n)
 {
     for (size_t i = 0; i < c->commands.n; ++i) {
