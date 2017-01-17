@@ -189,14 +189,18 @@ void acirc_clear(acirc *c)
 
 acirc * acirc_fread(acirc *c, FILE *fp)
 {
-    if (c == NULL)
-        c = acirc_malloc(sizeof(acirc));
+    bool mine = false;
+    if (c == NULL) {
+        c = acirc_calloc(1, sizeof(acirc));
+        mine = true;
+    }
     acirc_init(c);
     yyin = fp;
     if (yyparse(c) == 1) {
         fprintf(stderr, "error: parsing circuit failed\n");
         acirc_clear(c);
-        free(c);
+        if (mine)
+            free(c);
         return NULL;
     }
     return c;
