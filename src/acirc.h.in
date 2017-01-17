@@ -44,9 +44,6 @@ typedef struct {
     void *external;
 } acirc_gate_t;
 
-void acirc_init_gate(acirc_gate_t *gate, acirc_operation op, acircref *args,
-                     size_t nargs);
-
 typedef struct {
     acirc_gate_t *gates;
     size_t n;

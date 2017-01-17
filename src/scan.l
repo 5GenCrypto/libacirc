@@ -21,7 +21,7 @@
 input       { return INPUT; }
 const       { return CONST; }
 
-ADD|SUB|MUL|ID {
+ADD|SUB|MUL|SET {
     yylval.op = acirc_str2op(yytext); 
     return GATE;
 } 

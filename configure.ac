@@ -17,6 +17,8 @@ dnl AC_PROG_LIBTOOL
 AC_PROG_YACC
 AC_PROG_LEX
 
+AX_VALGRIND_CHECK
+
 AC_ARG_ENABLE(debug,
 [AS_HELP_STRING([--enable-debug], [enable debugging])],
 [], [enable_debug=no])
