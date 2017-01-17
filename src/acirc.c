@@ -331,6 +331,7 @@ static size_t acirc_depth_helper(const acirc *c, acircref ref, size_t *memo, boo
             size_t tmp = acirc_depth_helper(c, gate->args[i], memo, seen);
             ret = ret > tmp ? ret : tmp;
         }
+        ret++;
         break;
     case OP_SET:
         ret = acirc_depth_helper(c, gate->args[0], memo, seen);
@@ -350,6 +351,20 @@ size_t acirc_depth(const acirc *c, acircref ref)
     bool   seen[acirc_nrefs(c)];
     memset(seen, '\0', sizeof seen);
     return acirc_depth_helper(c, ref, memo, seen);
+}
+
+size_t acirc_max_depth(const acirc *c)
+{
+    size_t memo[acirc_nrefs(c)];
+    bool   seen[acirc_nrefs(c)];
+    memset(seen, '\0', sizeof seen);
+    size_t ret = 0;
+    for (size_t i = 0; i < c->outputs.n; i++) {
+        size_t tmp = acirc_depth_helper(c, c->outputs.buf[i], memo, seen);
+        if (tmp > ret)
+            ret = tmp;
+    }
+    return ret;
 }
 
 static size_t acirc_degree_helper(const acirc *c, acircref ref, size_t *memo, bool *seen)
@@ -392,6 +407,16 @@ size_t acirc_degree(const acirc *c, acircref ref)
     return acirc_degree_helper(c, ref, memo, seen);
 }
 
+size_t acirc_nmuls(const acirc *c)
+{
+    size_t nmuls = 0;
+    for (size_t i = 0; i < c->gates.n; i++) {
+        if (c->gates.gates[i].op == OP_MUL)
+            nmuls++;
+    }
+    return nmuls;
+}
+
 size_t acirc_max_degree(const acirc *c)
 {
     size_t memo[acirc_nrefs(c)];
@@ -403,7 +428,6 @@ size_t acirc_max_degree(const acirc *c)
         if (tmp > ret)
             ret = tmp;
     }
-
     return ret;
 }
 
