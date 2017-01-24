@@ -159,20 +159,20 @@ void acirc_topo_levels_destroy(acirc_topo_levels *topo);
 
 /* depth of circuit from wire 'ref' */
 size_t acirc_depth(const acirc *c, acircref ref);
+size_t acirc_max_depth(const acirc *c);
 /* degree of circuit from wire 'ref' */
 size_t acirc_degree(const acirc *c, acircref ref);
+size_t acirc_max_degree(const acirc *c);
 
-size_t acirc_var_degree(acirc *c, acircref ref, acircref id, acirc_memo *memo);
-size_t acirc_const_degree(acirc *c, acircref ref, acirc_memo *memo);
+size_t acirc_var_degree(const acirc *c, acircref ref, acircref id, acirc_memo *memo);
+size_t acirc_max_var_degree(const acirc *c, acircref id);
 
-size_t acirc_max_depth        (const acirc *c);
-size_t acirc_max_degree       (const acirc *c);
-size_t acirc_max_var_degree   (acirc *c, acircref id);
-size_t acirc_max_const_degree (acirc *c);
+size_t acirc_const_degree(const acirc *c, acircref ref, acirc_memo *memo);
+size_t acirc_max_const_degree(const acirc *c);
 /* computes the degree if all ops result in an additive increase */
-size_t acirc_max_total_degree(acirc *c);
+size_t acirc_max_total_degree(const acirc *c);
 size_t acirc_nmuls(const acirc *c);
-size_t acirc_delta(acirc *c);
+size_t acirc_delta(const acirc *c);
 
 /* helper functions */
 

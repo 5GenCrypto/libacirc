@@ -438,7 +438,7 @@ size_t acirc_max_degree(const acirc *c)
     return ret;
 }
 
-size_t acirc_var_degree(acirc *c, acircref ref, acircref id, acirc_memo *memo)
+size_t acirc_var_degree(const acirc *c, acircref ref, acircref id, acirc_memo *memo)
 {
     bool alloc = false;
     if (memo == NULL) {
@@ -484,7 +484,20 @@ size_t acirc_var_degree(acirc *c, acircref ref, acircref id, acirc_memo *memo)
     return res;
 }
 
-size_t acirc_const_degree(acirc *c, acircref ref, acirc_memo *memo)
+size_t acirc_max_var_degree(const acirc *c, acircref id)
+{
+    size_t ret = 0;
+    acirc_memo *memo = acirc_memo_new(c);
+    for (size_t i = 0; i < c->outputs.n; i++) {
+        size_t tmp = acirc_var_degree(c, c->outputs.buf[i], id, memo);
+        if (tmp > ret)
+            ret = tmp;
+    }
+    acirc_memo_free(memo, c);
+    return ret;
+}
+
+size_t acirc_const_degree(const acirc *c, acircref ref, acirc_memo *memo)
 {
     bool alloc = false;
     if (memo == NULL) {
@@ -528,20 +541,7 @@ size_t acirc_const_degree(acirc *c, acircref ref, acirc_memo *memo)
     return res;
 }
 
-size_t acirc_max_var_degree(acirc *c, acircref id)
-{
-    size_t ret = 0;
-    acirc_memo *memo = acirc_memo_new(c);
-    for (size_t i = 0; i < c->outputs.n; i++) {
-        size_t tmp = acirc_var_degree(c, c->outputs.buf[i], id, memo);
-        if (tmp > ret)
-            ret = tmp;
-    }
-    acirc_memo_free(memo, c);
-    return ret;
-}
-
-size_t acirc_max_const_degree(acirc *c)
+size_t acirc_max_const_degree(const acirc *c)
 {
     size_t ret = 0;
     acirc_memo *memo = acirc_memo_new(c);
@@ -554,7 +554,7 @@ size_t acirc_max_const_degree(acirc *c)
     return ret;
 }
 
-size_t acirc_delta(acirc *c)
+size_t acirc_delta(const acirc *c)
 {
     size_t delta = acirc_max_const_degree(c);
     for (size_t i = 0; i < c->ninputs; i++) {
@@ -563,7 +563,7 @@ size_t acirc_delta(acirc *c)
     return delta;
 }
 
-static size_t acirc_total_degree_helper(acirc *c, acircref ref, acirc_memo *memo)
+static size_t acirc_total_degree_helper(const acirc *c, acircref ref, acirc_memo *memo)
 {
     if (memo->exists[c->ninputs][ref])
         return memo->memo[c->ninputs][ref];
@@ -588,7 +588,7 @@ static size_t acirc_total_degree_helper(acirc *c, acircref ref, acirc_memo *memo
     }
 }
 
-size_t acirc_max_total_degree(acirc *c)
+size_t acirc_max_total_degree(const acirc *c)
 {
     acirc_memo *memo = acirc_memo_new(c);
     size_t ret = 0;
