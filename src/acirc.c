@@ -12,6 +12,29 @@
 extern int yyparse(acirc *);
 extern FILE *yyin;
 
+acirc_memo * acirc_memo_new(const acirc *c)
+{
+    acirc_memo *m = acirc_calloc(1, sizeof m[0]);
+    m->exists = acirc_calloc(c->ninputs + 1, sizeof m->exists[0]);
+    m->memo = acirc_calloc(c->ninputs + 1, sizeof m->memo[0]);
+    for (size_t i = 0; i < c->ninputs + 1; ++i) {
+        m->exists[i] = acirc_calloc(acirc_nrefs(c), sizeof m->exists[0][0]);
+        m->memo[i] = acirc_calloc(acirc_nrefs(c), sizeof m->memo[0][0]);
+    }
+    return m;
+}
+
+void acirc_memo_free(acirc_memo *memo, const acirc *c)
+{
+     for (size_t i = 0; i < c->ninputs + 1; ++i) {
+         free(memo->exists[i]);
+         free(memo->memo[i]);
+     }
+     free(memo->exists);
+     free(memo->memo);
+     free(memo);
+}
+
 size_t acirc_nrefs(const acirc *c)
 {
     return c->ninputs + c->gates.n + c->consts.n;
@@ -151,18 +174,6 @@ void acirc_init(acirc *c)
     acirc_init_tests(&c->tests);
     acirc_init_commands(&c->commands);
     acirc_init_extgates(&c->extgates);
-    c->_degree_memo_allocated = false;
-}
-
-static void degree_memo_allocate(acirc *c)
-{
-    c->_degree_memo   = acirc_calloc(c->ninputs+1, sizeof(size_t *));
-    c->_degree_memoed = acirc_calloc(c->ninputs+1, sizeof(bool *));
-    for (size_t i = 0; i < c->ninputs+1; i++) {
-        c->_degree_memo[i]   = acirc_calloc(acirc_nrefs(c), sizeof(size_t));
-        c->_degree_memoed[i] = acirc_calloc(acirc_nrefs(c), sizeof(bool));
-    }
-    c->_degree_memo_allocated = true;
 }
 
 void acirc_clear(acirc *c)
@@ -173,14 +184,6 @@ void acirc_clear(acirc *c)
     acirc_clear_consts(&c->consts);
     acirc_clear_commands(&c->commands);
     acirc_clear_extgates(&c->extgates);
-    if (c->_degree_memo_allocated) {
-        for (size_t i = 0; i < c->ninputs + 1; i++) {
-            free(c->_degree_memo[i]);
-            free(c->_degree_memoed[i]);
-        }
-        free(c->_degree_memo);
-        free(c->_degree_memoed);
-    }
 }
 
 acirc * acirc_fread(acirc *c, FILE *fp)
@@ -435,99 +438,119 @@ size_t acirc_max_degree(const acirc *c)
     return ret;
 }
 
-size_t acirc_var_degree(acirc *c, acircref ref, acircref id)
+size_t acirc_var_degree(acirc *c, acircref ref, acircref id, acirc_memo *memo)
 {
-    if (!c->_degree_memo_allocated)
-        degree_memo_allocate(c);
-    if (c->_degree_memoed[id][ref])
-        return c->_degree_memo[id][ref];
+    bool alloc = false;
+    if (memo == NULL) {
+        memo = acirc_memo_new(c);
+        alloc = true;
+    } else if (memo->exists[id][ref])
+        return memo->memo[id][ref];
 
     const acirc_gate_t *gate = &c->gates.gates[ref];
+    size_t res = 0;
     switch (gate->op) {
     case OP_INPUT:
-        return (gate->args[0] == id) ? 1 : 0;
+        res = (gate->args[0] == id) ? 1 : 0;
+        break;
     case OP_CONST:
-        return 0;
+        res = 0;
+        break;
     case OP_ADD: case OP_SUB: case OP_MUL: {
-        size_t res = 0;
         for (size_t i = 0; i < gate->nargs; ++i) {
-            size_t tmp = acirc_var_degree(c, gate->args[i], id);
+            size_t tmp = acirc_var_degree(c, gate->args[i], id, memo);
             if (gate->op == OP_MUL)
                 res += tmp;
             else
                 res = res > tmp ? res : tmp;
         }
         if (gate->op != OP_MUL) {
-            c->_degree_memo[id][ref] = res;
-            c->_degree_memoed[id][ref] = true;
+            memo->memo[id][ref] = res;
+            memo->exists[id][ref] = true;
         }
-        return res;
+        break;
     }
     case OP_SET: {
-        size_t res = acirc_var_degree(c, gate->args[0], id);
-        c->_degree_memo[id][ref] = res;
-        c->_degree_memoed[id][ref] = true;
-        return res;
+        res = acirc_var_degree(c, gate->args[0], id, memo);
+        memo->memo[id][ref] = res;
+        memo->exists[id][ref] = true;
+        break;
     }
     default:
         abort();
     }
+    if (alloc)
+        acirc_memo_free(memo, c);
+    return res;
 }
 
-size_t acirc_const_degree(acirc *c, acircref ref)
+size_t acirc_const_degree(acirc *c, acircref ref, acirc_memo *memo)
 {
-    if (!c->_degree_memo_allocated)
-        degree_memo_allocate(c);
-    if (c->_degree_memoed[c->ninputs][ref])
-        return c->_degree_memo[c->ninputs][ref];
+    bool alloc = false;
+    if (memo == NULL) {
+        memo = acirc_memo_new(c);
+        alloc = true;
+    } else if (memo->exists[c->ninputs][ref]) {
+        return memo->memo[c->ninputs][ref];
+    }
 
     const acirc_gate_t *gate = &c->gates.gates[ref];
+    size_t res = 0;
     switch (gate->op) {
     case OP_INPUT:
-        return 0;
+        res = 0;
+        break;
     case OP_CONST:
-        return 1;
+        res = 1;
+        break;
     case OP_ADD: case OP_SUB: case OP_MUL: {
-        size_t res = 0;
         for (size_t i = 0; i < gate->nargs; ++i) {
-            size_t tmp = acirc_const_degree(c, gate->args[i]);
+            size_t tmp = acirc_const_degree(c, gate->args[i], memo);
             if (gate->op == OP_MUL)
                 res += tmp;
             else
                 res = res > tmp ? res : tmp;
         }
         if (gate->op != OP_MUL) {
-            c->_degree_memo[c->ninputs][ref] = res;
-            c->_degree_memoed[c->ninputs][ref] = true;
+            memo->memo[c->ninputs][ref] = res;
+            memo->exists[c->ninputs][ref] = true;
         }
-        return res;
+        break;
     }
     case OP_SET:
-        return acirc_const_degree(c, gate->args[0]);
+        res = acirc_const_degree(c, gate->args[0], memo);
+        break;
     default:
         abort();
     }
+    if (alloc)
+        acirc_memo_free(memo, c);
+    return res;
 }
 
 size_t acirc_max_var_degree(acirc *c, acircref id)
 {
     size_t ret = 0;
+    acirc_memo *memo = acirc_memo_new(c);
     for (size_t i = 0; i < c->outputs.n; i++) {
-        size_t tmp = acirc_var_degree(c, c->outputs.buf[i], id);
+        size_t tmp = acirc_var_degree(c, c->outputs.buf[i], id, memo);
         if (tmp > ret)
             ret = tmp;
     }
+    acirc_memo_free(memo, c);
     return ret;
 }
 
 size_t acirc_max_const_degree(acirc *c)
 {
     size_t ret = 0;
+    acirc_memo *memo = acirc_memo_new(c);
     for (size_t i = 0; i < c->outputs.n; i++) {
-        size_t tmp = acirc_const_degree(c, c->outputs.buf[i]);
+        size_t tmp = acirc_const_degree(c, c->outputs.buf[i], memo);
         if (tmp > ret)
             ret = tmp;
     }
+    acirc_memo_free(memo, c);
     return ret;
 }
 
@@ -540,10 +563,10 @@ size_t acirc_delta(acirc *c)
     return delta;
 }
 
-static size_t acirc_total_degree_helper(acirc *c, acircref ref)
+static size_t acirc_total_degree_helper(acirc *c, acircref ref, acirc_memo *memo)
 {
-    if (c->_degree_memoed[c->ninputs][ref])
-        return c->_degree_memo[c->ninputs][ref];
+    if (memo->exists[c->ninputs][ref])
+        return memo->memo[c->ninputs][ref];
 
     const acirc_gate_t *gate = &c->gates.gates[ref];
     switch (gate->op) {
@@ -552,14 +575,14 @@ static size_t acirc_total_degree_helper(acirc *c, acircref ref)
     case OP_ADD: case OP_SUB: case OP_MUL: {
         size_t res = 0;
         for (size_t i = 0; i < gate->nargs; ++i) {
-            res += acirc_total_degree_helper(c, gate->args[i]);
+            res += acirc_total_degree_helper(c, gate->args[i], memo);
         }
-        c->_degree_memo[c->ninputs][ref] = res;
-        c->_degree_memoed[c->ninputs][ref] = true;
+        memo->memo[c->ninputs][ref] = res;
+        memo->exists[c->ninputs][ref] = true;
         return res;
     }
     case OP_SET:
-        return acirc_total_degree_helper(c, gate->args[0]);
+        return acirc_total_degree_helper(c, gate->args[0], memo);
     default:
         abort();
     }
@@ -567,17 +590,14 @@ static size_t acirc_total_degree_helper(acirc *c, acircref ref)
 
 size_t acirc_max_total_degree(acirc *c)
 {
-    if (!c->_degree_memo_allocated)
-        degree_memo_allocate(c);
-    /* reset memoed info */
-    memset(c->_degree_memoed[c->ninputs], '\0', acirc_nrefs(c) * sizeof(bool));
-
+    acirc_memo *memo = acirc_memo_new(c);
     size_t ret = 0;
     for (size_t i = 0; i < c->outputs.n; ++i) {
-        size_t tmp = acirc_total_degree_helper(c, c->outputs.buf[i]);
+        size_t tmp = acirc_total_degree_helper(c, c->outputs.buf[i], memo);
         if (tmp > ret)
             ret = tmp;
     }
+    acirc_memo_free(memo, c);
     return ret;
 }
 

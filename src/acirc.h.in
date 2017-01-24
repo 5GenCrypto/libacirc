@@ -107,6 +107,14 @@ typedef struct {
 
 void acirc_add_extra(acirc_extras_t *e, const char *name, void *data);
 
+typedef struct acirc_memo {
+    bool **exists;
+    acircref **memo;
+} acirc_memo;
+
+acirc_memo * acirc_memo_new(const acirc *c);
+void acirc_memo_free(acirc_memo *memo, const acirc *c);
+
 struct acirc {
     size_t ninputs;
     acirc_gates_t gates;
@@ -116,10 +124,6 @@ struct acirc {
     acirc_commands_t commands;
     acirc_extgates_t extgates;
     acirc_extras_t extras;
-
-    bool _degree_memo_allocated;
-    size_t **_degree_memo;
-    bool   **_degree_memoed;
 };
 
 void acirc_init(acirc *c);
@@ -153,10 +157,13 @@ void acirc_topo_levels_destroy(acirc_topo_levels *topo);
 
 /* degree calculations */
 
-size_t acirc_depth        (const acirc *c, acircref ref);
-size_t acirc_degree       (const acirc *c, acircref ref);
-size_t acirc_var_degree   (acirc *c, acircref ref, acircref id);
-size_t acirc_const_degree (acirc *c, acircref ref);
+/* depth of circuit from wire 'ref' */
+size_t acirc_depth(const acirc *c, acircref ref);
+/* degree of circuit from wire 'ref' */
+size_t acirc_degree(const acirc *c, acircref ref);
+
+size_t acirc_var_degree(acirc *c, acircref ref, acircref id, acirc_memo *memo);
+size_t acirc_const_degree(acirc *c, acircref ref, acirc_memo *memo);
 
 size_t acirc_max_depth        (const acirc *c);
 size_t acirc_max_degree       (const acirc *c);
