@@ -22,7 +22,7 @@ int acirc_add_command(acirc *c, const char *name, const char **strs, size_t n)
         if (strcmp(name, cmd->name) == 0)
             return cmd->f(c, strs, n);
     }
-    fprintf(stderr, "error: unknown command '%s'\n", name);
+    fprintf(stderr, "warning: unknown command '%s'\n", name);
     return ACIRC_ERR;
 }
 

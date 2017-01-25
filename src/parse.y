@@ -83,8 +83,6 @@ command:        COMMAND strlist ENDLS
                     }
                     free(list);
                     free($1);
-                    /* if (ret == ACIRC_ERR) */
-                    /*     YYABORT; */
                 }
                 ;
 
