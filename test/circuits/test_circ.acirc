@@ -7,4 +7,5 @@
 2 const 5
 3 ADD 0 1 2
 4 SET 3
+:obf public 2
 :outputs 4

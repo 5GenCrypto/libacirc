@@ -136,6 +136,7 @@ bool acirc_ensure(acirc *c);
 
 /* builder functions */
 
+int acirc_add_external_command(acirc *c, acirc_command_t cmd);
 int acirc_add_command(acirc *c, const char *cmd, const char **strs, size_t n);
 int acirc_add_input(acirc *c, acircref ref, acircref id);
 int acirc_add_const(acirc *c, acircref ref, int val);

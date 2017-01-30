@@ -13,6 +13,8 @@
 
 extern int yylineno;
 extern int yylex(void);
+void yyerror(const acirc *c, const char *m);
+
 void yyerror(const acirc *c, const char *m)
 {
     (void) c;
@@ -66,7 +68,6 @@ line:           command | input | const | gate
 
 command:        COMMAND strlist ENDLS
                 {
-                    int ret;
                     struct ll *list = $2;
                     struct ll_node *node = list->start;
                     char *strs[list->length];
@@ -77,7 +78,7 @@ command:        COMMAND strlist ENDLS
                         free(node);
                         node = tmp;
                     }
-                    ret = acirc_add_command(c, $1, strs, list->length);
+                    (void) acirc_add_command(c, $1, strs, list->length);
                     for (size_t i = 0; i < list->length; ++i) {
                         free(strs[i]);
                     }

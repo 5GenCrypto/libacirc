@@ -19,7 +19,7 @@ static int acirc_add_fhe_plaintexts(acirc *c, const char **strs, size_t n)
         s->refs[i] = atoi(strs[i]);
     }
     acirc_add_extra(&c->extras, "fhe-plaintexts", s);
-    return ACIRC_ERR;
+    return ACIRC_OK;
 }
 
 static int acirc_add_fhe(acirc *c, const char **strs, size_t n)
@@ -37,11 +37,3 @@ static int acirc_add_fhe(acirc *c, const char **strs, size_t n)
     }
 }
 const acirc_command_t command_fhe = { ":fhe", acirc_add_fhe };
-
-int acirc_add_fhe_commands(acirc_commands_t *cmds)
-{
-    cmds->commands = acirc_realloc(cmds->commands, (cmds->n + 1) * sizeof cmds->commands[0]);
-    cmds->n += 1;
-    cmds->commands[cmds->n - 1] = command_fhe;
-    return ACIRC_OK;
-}

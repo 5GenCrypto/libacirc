@@ -89,6 +89,15 @@ static void acirc_clear_commands(acirc_commands_t *cmds)
     free(cmds->commands);
 }
 
+int acirc_add_external_command(acirc *c, acirc_command_t cmd)
+{
+    acirc_commands_t *cmds = &c->commands;
+    cmds->commands = acirc_realloc(cmds->commands, (cmds->n + 1) * sizeof cmds->commands[0]);
+    cmds->n += 1;
+    cmds->commands[cmds->n - 1] = cmd;
+    return ACIRC_OK;
+}
+
 void acirc_verbose(uint32_t verbose)
 {
     g_verbose = verbose;
@@ -147,7 +156,7 @@ static void acirc_clear_outputs(acirc_outputs_t *o)
 static void acirc_init_consts(acirc_consts_t *c)
 {
     c->_alloc = 2;
-    c->buf = acirc_calloc(c->_alloc, sizeof(int));
+    c->buf = acirc_calloc(c->_alloc, sizeof c->buf[0]);
     c->n = 0;
 }
 
@@ -191,9 +200,9 @@ acirc * acirc_fread(acirc *c, FILE *fp)
     bool mine = false;
     if (c == NULL) {
         c = acirc_calloc(1, sizeof(acirc));
+        acirc_init(c);
         mine = true;
     }
-    acirc_init(c);
     yyin = fp;
     if (yyparse(c) == 1) {
         fprintf(stderr, "error: parsing circuit failed\n");

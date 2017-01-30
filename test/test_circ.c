@@ -1,4 +1,5 @@
 #include <acirc.h>
+#include <commands/obf.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -7,30 +8,30 @@
 int
 main(void)
 {
-    acirc *c;
     bool result;
     FILE *fp;
 
     acirc_verbose(true);
 
     {
+        acirc c;
         fp = fopen("circuits/test_circ.acirc", "r");
-        c = acirc_fread(NULL, fp);
+        acirc_init(&c);
+        acirc_add_external_command(&c, command_obf);
+        (void) acirc_fread(&c, fp);
         fclose(fp);
-        if (c == NULL)
-            return 1;
 
-        result = acirc_ensure(c);
+        result = acirc_ensure(&c);
 
         fp = fopen("circuits/test_circ2.acirc", "w");
-        acirc_fwrite(c, fp);
+        acirc_fwrite(&c, fp);
         fclose(fp);
 
-        acirc_clear(c);
-        free(c);
+        acirc_clear(&c);
     }
 
     {
+        acirc *c;
         fp = fopen("circuits/test_circ2.acirc", "r");
         c = acirc_fread(NULL, fp);
         fclose(fp);

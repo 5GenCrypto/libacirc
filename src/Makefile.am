@@ -15,6 +15,7 @@ gmp.c       \
 topo.c      \
 utils.c	    \
 commands/fhe.c     \
+commands/obf.c     \
 commands/outputs.c \
 commands/test.c
 
