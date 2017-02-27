@@ -603,7 +603,7 @@ size_t acirc_max_total_degree(const acirc *c)
 size_t acirc_nmuls(const acirc *c)
 {
     size_t nmuls = 0;
-    for (size_t i = 0; i < c->ninputs + c->gates.n; i++) {
+    for (size_t i = 0; i < c->ninputs + c->consts.n + c->gates.n; i++) {
         if (c->gates.gates[i].op == OP_MUL)
             nmuls++;
     }
