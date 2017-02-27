@@ -29,6 +29,7 @@ int main(void)
         return !result;
 
     fp = fopen("circuits/test_builder.acirc", "r");
+    acirc_init(&c);
     acirc_fread(&c, fp);
     fclose(fp);
 
