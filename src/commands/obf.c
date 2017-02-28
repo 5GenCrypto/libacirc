@@ -1,6 +1,9 @@
 #include "obf.h"
 #include "utils.h"
 
+#include <stdlib.h>
+#include <string.h>
+
 typedef struct {
     acircref *refs;
     size_t n;
