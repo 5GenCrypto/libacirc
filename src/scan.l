@@ -30,7 +30,7 @@ ADD|SUB|MUL|SET {
 [ \r\t]+                        /* ignore whitespace */
 #.*\n                           /* ignore comments */
 
-[0-9]+      { yylval.num = strdup(yytext); return NUM; }
+-?[0-9]+    { yylval.num = strdup(yytext); return NUM; }
 [a-zA-Z]+   { yylval.str = strdup(yytext); return STR; }
 :[a-zA-Z]+  { yylval.str = strdup(yytext); BEGIN(command); return COMMAND; }
 
