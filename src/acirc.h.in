@@ -175,6 +175,8 @@ size_t acirc_max_total_degree(const acirc *c);
 size_t acirc_nmuls(const acirc *c);
 size_t acirc_delta(const acirc *c);
 
+char * acirc_to_sage(const acirc *c, acircref ref);
+
 /* helper functions */
 
 size_t acirc_nrefs(const acirc *c);

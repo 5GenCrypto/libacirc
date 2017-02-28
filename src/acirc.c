@@ -610,9 +610,6 @@ size_t acirc_nmuls(const acirc *c)
     return nmuls;
 }
 
-////////////////////////////////////////////////////////////////////////////////
-// helpers
-
 acirc_operation acirc_str2op(char *s)
 {
     if (strcmp(s, "ADD") == 0) {
@@ -643,4 +640,42 @@ char * acirc_op2str(acirc_operation op)
     default:
         return NULL;
     }
+}
+
+char *
+acirc_to_sage(const acirc *c, acircref ref)
+{
+    char *str;
+    size_t size;
+    const acirc_gate_t *gate = &c->gates.gates[ref];
+    switch (gate->op) {
+    case OP_INPUT:
+        size = 1024;
+        str = calloc(size, sizeof str[0]);
+        snprintf(str, size, "var('x%ld')", gate->args[0]);
+        break;
+    case OP_CONST:
+        size = 1024;
+        str = calloc(size, sizeof str[0]);
+        snprintf(str, size, "%ld", gate->args[1]);
+        break;
+    case OP_ADD: case OP_SUB: case OP_MUL: {
+        assert(gate->nargs == 2);
+        char *lhs = acirc_to_sage(c, gate->args[0]);
+        char *rhs = acirc_to_sage(c, gate->args[1]);
+        size = strlen(lhs) + strlen(rhs) + strlen("()() _ ") + 1;
+        str = calloc(size, sizeof str[0]);
+        char c = gate->op == OP_ADD ? '+'
+            : gate->op == OP_SUB ? '-'
+            : '*';
+        snprintf(str, size, "(%s) %c (%s)", lhs, c, rhs);
+        free(lhs);
+        free(rhs);
+        break;
+    }
+    default:
+        fprintf(stderr, "error: op '%s' not supported\n", acirc_op2str(gate->op));
+        abort();
+    }
+    return str;
 }
