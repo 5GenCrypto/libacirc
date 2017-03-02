@@ -17,6 +17,7 @@ utils.c	    \
 commands/fhe.c     \
 commands/obf.c     \
 commands/outputs.c \
+commands/secrets.c \
 commands/test.c
 
 libacirc_la_SOURCES = $(SOURCES) $(PARSER)

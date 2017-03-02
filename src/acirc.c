@@ -2,6 +2,7 @@
 #include "utils.h"
 #include "commands/outputs.h"
 #include "commands/test.h"
+#include "commands/secrets.h"
 
 #include <assert.h>
 #include <math.h>
@@ -78,10 +79,11 @@ acircref acirc_eval_extgate(const acirc_extgates_t *extgates, const acirc_gate_t
 
 static void acirc_init_commands(acirc_commands_t *cmds)
 {
-    cmds->n = 2;
+    cmds->n = 3;
     cmds->commands = acirc_calloc(cmds->n, sizeof(acirc_command_t));
     cmds->commands[0] = command_test;
     cmds->commands[1] = command_outputs;
+    cmds->commands[2] = command_secrets;
 }
 
 static void acirc_clear_commands(acirc_commands_t *cmds)
@@ -153,6 +155,18 @@ static void acirc_clear_outputs(acirc_outputs_t *o)
         free(o->buf);
 }
 
+static void acirc_init_secrets(acirc_secrets_t *s)
+{
+    s->n = 0;
+    s->list = NULL;
+}
+
+static void acirc_clear_secrets(acirc_secrets_t *s)
+{
+    if (s->list)
+        free(s->list);
+}
+
 static void acirc_init_consts(acirc_consts_t *c)
 {
     c->_alloc = 2;
@@ -180,6 +194,7 @@ void acirc_init(acirc *c)
     acirc_init_gates(&c->gates);
     acirc_init_consts(&c->consts);
     acirc_init_outputs(&c->outputs);
+    acirc_init_secrets(&c->secrets);
     acirc_init_tests(&c->tests);
     acirc_init_commands(&c->commands);
     acirc_init_extgates(&c->extgates);
@@ -189,6 +204,7 @@ void acirc_clear(acirc *c)
 {
     acirc_clear_gates(&c->gates, acirc_nrefs(c));
     acirc_clear_outputs(&c->outputs);
+    acirc_clear_secrets(&c->secrets);
     acirc_clear_tests(&c->tests);
     acirc_clear_consts(&c->consts);
     acirc_clear_commands(&c->commands);
@@ -238,6 +254,7 @@ int acirc_fwrite(const acirc *c, FILE *fp)
         }
     }
     acirc_add_outputs_to_file(&c->outputs, fp);
+    acirc_add_secrets_to_file(&c->secrets, fp);
     return ACIRC_OK;
 }
 
@@ -665,10 +682,10 @@ acirc_to_sage(const acirc *c, acircref ref)
         char *rhs = acirc_to_sage(c, gate->args[1]);
         size = strlen(lhs) + strlen(rhs) + strlen("()() _ ") + 1;
         str = calloc(size, sizeof str[0]);
-        char c = gate->op == OP_ADD ? '+'
+        char ch = gate->op == OP_ADD ? '+'
             : gate->op == OP_SUB ? '-'
             : '*';
-        snprintf(str, size, "(%s) %c (%s)", lhs, c, rhs);
+        snprintf(str, size, "(%s) %c (%s)", lhs, ch, rhs);
         free(lhs);
         free(rhs);
         break;

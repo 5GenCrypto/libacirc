@@ -28,6 +28,4 @@ void acirc_add_outputs_to_file(const acirc_outputs_t *o, FILE *f)
         fprintf(f, " %ld", o->buf[i]);
     }
     fprintf(f, "\n");
-
 }
-

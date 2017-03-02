@@ -8,3 +8,4 @@
 3 ADD 0 1 2
 4 SET 3
 :outputs 4
+:secrets

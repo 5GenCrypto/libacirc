@@ -80,6 +80,11 @@ typedef struct {
 } acirc_outputs_t;
 
 typedef struct {
+    size_t n;
+    acircref *list;
+} acirc_secrets_t;
+
+typedef struct {
     int *buf;
     size_t n;
     size_t _alloc;
@@ -120,6 +125,7 @@ struct acirc {
     acirc_gates_t gates;
     acirc_tests_t tests;
     acirc_outputs_t outputs;
+    acirc_secrets_t secrets;
     acirc_consts_t consts;
     acirc_commands_t commands;
     acirc_extgates_t extgates;
