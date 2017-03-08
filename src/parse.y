@@ -1,7 +1,8 @@
 /* %define api.pure */
 %code requires { #include "acirc.h" }
 %parse-param { acirc *c }
-%define parse.error verbose
+/* below not available on bison 2.7 */
+/* %define parse.error verbose */
 
 /* C declarations */
 
