@@ -170,24 +170,24 @@ gate:           NUM GATE numlist ENDLS
                 }
                 ;
 
-extgate:        NUM STR numlist ENDLS
-                {
-                    struct ll *list = $3;
-                    struct ll_node *node = list->start;
-                    acircref refs[list->length];
-                    for (size_t i = 0; i < list->length; ++i) {
-                        struct ll_node *tmp;
-                        refs[i] = atoi(node->data);
-                        tmp = node->next;
-                        free(node->data);
-                        free(node);
-                        node = tmp;
-                    }
-                    acirc_add_extgate(c, atoi($1), $2, refs, list->length);
-                    free(list);
-                    free($1);
-                }
-        ;
+/* extgate:        NUM STR numlist ENDLS */
+/*                 { */
+/*                     struct ll *list = $3; */
+/*                     struct ll_node *node = list->start; */
+/*                     acircref refs[list->length]; */
+/*                     for (size_t i = 0; i < list->length; ++i) { */
+/*                         struct ll_node *tmp; */
+/*                         refs[i] = atoi(node->data); */
+/*                         tmp = node->next; */
+/*                         free(node->data); */
+/*                         free(node); */
+/*                         node = tmp; */
+/*                     } */
+/*                     acirc_add_extgate(c, atoi($1), $2, refs, list->length); */
+/*                     free(list); */
+/*                     free($1); */
+/*                 } */
+/*         ; */
 
 ENDLS:          ENDLS ENDL
         |       ENDL
