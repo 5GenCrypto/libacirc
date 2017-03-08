@@ -2,6 +2,7 @@
 #include "utils.h"
 
 #include <assert.h>
+#include <limits.h>
 #include <stdlib.h>
 
 static int
