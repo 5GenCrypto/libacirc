@@ -1,5 +1,4 @@
 #include <acirc.h>
-#include <commands/obf.h>
 
 #include <string.h>
 #include <stdio.h>
@@ -17,7 +16,6 @@ main(void)
         acirc c;
         fp = fopen("circuits/test_circ.acirc", "r");
         acirc_init(&c);
-        acirc_add_external_command(&c, command_obf);
         (void) acirc_fread(&c, fp);
         fclose(fp);
 
