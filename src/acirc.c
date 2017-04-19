@@ -220,9 +220,8 @@ acirc * acirc_fread(acirc *c, FILE *fp)
         mine = true;
     }
     yyin = fp;
-    if (yyparse(c) == 1) {
-        fprintf(stderr, "error: parsing circuit failed\n");
-        acirc_clear(c);
+    if (yyparse(c) != 0) {
+        /* acirc_clear(c); */
         if (mine)
             free(c);
         return NULL;

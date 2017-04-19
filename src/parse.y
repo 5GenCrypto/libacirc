@@ -19,10 +19,10 @@ void yyerror(const acirc *c, const char *m);
 void yyerror(const acirc *c, const char *m)
 {
     (void) c;
-    fprintf(stderr, "error (line %d): %s\n", yylineno, m);
+    fprintf(stderr, "error: %s\n", yylineno, m);
 }
 
-#define YYINITDEPTH 100000
+#define YYINITDEPTH 500000
 
 struct ll_node {
     struct ll_node *next;
