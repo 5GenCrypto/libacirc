@@ -88,7 +88,8 @@ static void acirc_init_commands(acirc_commands_t *cmds)
 
 static void acirc_clear_commands(acirc_commands_t *cmds)
 {
-    free(cmds->commands);
+    if (cmds->commands)
+        free(cmds->commands);
 }
 
 int acirc_add_external_command(acirc *c, acirc_command_t cmd)
@@ -114,14 +115,16 @@ static void acirc_init_gates(acirc_gates_t *g)
 
 static void acirc_clear_gates(acirc_gates_t *g, size_t n)
 {
-    for (size_t i = 0; i < n; ++i) {
-        free(g->gates[i].args);
-        if (g->gates[i].name)
-            free(g->gates[i].name);
-        if (g->gates[i].external)
-            free(g->gates[i].external);
+    if (g->gates) {
+        for (size_t i = 0; i < n; ++i) {
+            free(g->gates[i].args);
+            if (g->gates[i].name)
+                free(g->gates[i].name);
+            if (g->gates[i].external)
+                free(g->gates[i].external);
+        }
+        free(g->gates);
     }
-    free(g->gates);
 }
 
 static void acirc_init_tests(acirc_tests_t *t)
@@ -133,14 +136,16 @@ static void acirc_init_tests(acirc_tests_t *t)
 
 static void acirc_clear_tests(acirc_tests_t *t)
 {
-    for (size_t i = 0; i < t->n; ++i) {
-        free(t->inps[i]);
-        free(t->outs[i]);
-    }
-    if (t->inps)
+    if (t->inps) {
+        for (size_t i = 0; i < t->n; ++i)
+            free(t->inps[i]);
         free(t->inps);
-    if (t->outs)
+    }
+    if (t->outs) {
+        for (size_t i = 0; i < t->n; ++i)
+            free(t->outs[i]);
         free(t->outs);
+    }
 }
 
 static void acirc_init_outputs(acirc_outputs_t *o)
@@ -151,7 +156,7 @@ static void acirc_init_outputs(acirc_outputs_t *o)
 
 static void acirc_clear_outputs(acirc_outputs_t *o)
 {
-    if (o->buf)
+    if (o && o->buf)
         free(o->buf);
 }
 

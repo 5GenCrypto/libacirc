@@ -19,7 +19,7 @@ void yyerror(const acirc *c, const char *m);
 void yyerror(const acirc *c, const char *m)
 {
     (void) c;
-    fprintf(stderr, "error: %s\n", yylineno, m);
+    fprintf(stderr, "error: %d: %s\n", yylineno, m);
 }
 
 #define YYINITDEPTH 500000
@@ -89,17 +89,17 @@ command:        COMMAND strlist ENDLS
                 ;
 
 
-input:          NUM INPUT NUM ENDLS
+input:          STR INPUT STR ENDLS
                 {
-                    acirc_add_input(c, atoi($1), atoi($3));
+                    acirc_add_input(c, strtol($1, NULL, 10), strtol($3, NULL, 10));
                     free($1);
                     free($3);
                 }
                 ;
 
-const:          NUM CONST NUM ENDLS
+const:          STR CONST STR ENDLS
                 {
-                    acirc_add_const(c, atoi($1), atoi($3));
+                    acirc_add_const(c, strtol($1, NULL, 10), strtol($3, NULL, 36));
                     free($1);
                     free($3);
                 }
@@ -135,7 +135,7 @@ numlist:       /* empty */
                     list->start = list->end = NULL;
                     $$ = list;
                 }
-        |       numlist NUM
+        |       numlist STR
                 {
                     struct ll *list = $1;
                     struct ll_node *node = calloc(1, sizeof(struct ll_node) + sizeof(int));
@@ -152,7 +152,7 @@ numlist:       /* empty */
                 }
                 ;
 
-gate:           NUM GATE numlist ENDLS
+gate:           STR GATE numlist ENDLS
                 {
                     struct ll *list = $3;
                     struct ll_node *node = list->start;
@@ -170,25 +170,6 @@ gate:           NUM GATE numlist ENDLS
                     free($1);
                 }
                 ;
-
-/* extgate:        NUM STR numlist ENDLS */
-/*                 { */
-/*                     struct ll *list = $3; */
-/*                     struct ll_node *node = list->start; */
-/*                     acircref refs[list->length]; */
-/*                     for (size_t i = 0; i < list->length; ++i) { */
-/*                         struct ll_node *tmp; */
-/*                         refs[i] = atoi(node->data); */
-/*                         tmp = node->next; */
-/*                         free(node->data); */
-/*                         free(node); */
-/*                         node = tmp; */
-/*                     } */
-/*                     acirc_add_extgate(c, atoi($1), $2, refs, list->length); */
-/*                     free(list); */
-/*                     free($1); */
-/*                 } */
-/*         ; */
 
 ENDLS:          ENDLS ENDL
         |       ENDL

@@ -1,7 +1,21 @@
 #include "test.h"
 #include "utils.h"
 
+#include <ctype.h>
 #include <string.h>
+
+static int
+char_to_int(char c)
+{
+    if (toupper(c) >= 'A' && toupper(c) <= 'Z')
+        return toupper(c) - 'A' + 10;
+    else if (c >= '0' && c <= '9')
+        return c - '0';
+    else {
+        fprintf(stderr, "error: invalid input '%c'\n", c);
+        return -1;
+    }
+}
 
 static int acirc_add_test(acirc *c, const char **strs, size_t n)
 {
@@ -22,10 +36,10 @@ static int acirc_add_test(acirc *c, const char **strs, size_t n)
     int *out = acirc_calloc(out_len, sizeof out[0]);
 
     for (size_t i = 0; i < inp_len; i++) {
-        inp[i] = strs[0][inp_len - 1 - i] - 48;
+        inp[i] = char_to_int(strs[0][inp_len - 1 - i]);
     }
     for (size_t i = 0; i < out_len; i++) {
-        out[i] = strs[1][out_len - 1 - i] - 48;
+        out[i] = char_to_int(strs[1][out_len - 1 - i]);
     }
 
     tests->inps[last] = inp;
