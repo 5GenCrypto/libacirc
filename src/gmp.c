@@ -55,8 +55,9 @@ acirc_eval_mpz_mod_memo(acirc *c, acircref root, mpz_t *xs, mpz_t *ys,
     }
     case OP_SET:
         acirc_eval_mpz_mod_memo(c, gate->args[0], xs, ys, modulus, known, cache);
+        mpz_init_set(cache[root], cache[gate->args[0]]);
         break;
-    case OP_EXTERNAL:
+    default:
         abort();
     }
 }
