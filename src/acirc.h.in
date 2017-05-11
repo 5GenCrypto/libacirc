@@ -190,12 +190,9 @@ size_t acirc_nrefs(const acirc *c);
 /* GMP functions */
 
 #ifdef HAVE_GMP
-void acirc_eval_mpz_mod_memo(mpz_t rop, acirc *c, acircref root,
-                             const mpz_t *xs, const mpz_t *ys,
-                             const mpz_t modulus, bool *known,
-                             mpz_t *cache);
-void acirc_eval_mpz_mod(mpz_t rop, acirc *c, acircref root,
-                        const mpz_t *xs, const mpz_t *ys,
+void acirc_eval_mpz_mod_memo(acirc *c, acircref root, mpz_t *xs, mpz_t *ys,
+                             const mpz_t modulus, bool *known, mpz_t *cache);
+void acirc_eval_mpz_mod(mpz_t rop, acirc *c, acircref root, mpz_t *xs, mpz_t *ys,
                         const mpz_t modulus);
 bool acirc_ensure_mpz(acirc *c);
 #endif
