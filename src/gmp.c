@@ -20,10 +20,10 @@ acirc_eval_mpz_mod_memo(acirc *c, acircref root, mpz_t *xs, mpz_t *ys,
     mpz_t *rop;
     switch (op) {
     case OP_INPUT:
-        rop = &xs[gate->args[0]];
+        mpz_init_set(cache[root], xs[gate->args[0]]);
         break;
     case OP_CONST:
-        rop = &ys[gate->args[0]];
+        mpz_init_set(cache[root], ys[gate->args[0]]);
         break;
     case OP_ADD: case OP_SUB: case OP_MUL: {
         mpz_init(cache[root]);
