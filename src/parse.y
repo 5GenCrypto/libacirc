@@ -107,14 +107,13 @@ const:          STR CONST STR ENDLS
 
 strlist:        /* empty */
                 {
-                    struct ll *list = calloc(1, sizeof(struct ll));
-                    list->start = list->end = NULL;
+                    struct ll *list = calloc(1, sizeof list[0]);
                     $$ = list;
                 }
         |       strlist STR
                 {
                     struct ll *list = $1;
-                    struct ll_node *node = calloc(1, sizeof(struct ll_node) + sizeof(char *));
+                    struct ll_node *node = calloc(1, sizeof node[0]);
                     node->data = $2;
                     if (list->start == NULL) {
                         list->start = node;
@@ -131,14 +130,14 @@ strlist:        /* empty */
 
 numlist:       /* empty */
                 {
-                    struct ll *list = calloc(1, sizeof(struct ll));
+                    struct ll *list = calloc(1, sizeof list[0]);
                     list->start = list->end = NULL;
                     $$ = list;
                 }
         |       numlist STR
                 {
                     struct ll *list = $1;
-                    struct ll_node *node = calloc(1, sizeof(struct ll_node) + sizeof(int));
+                    struct ll_node *node = calloc(1, sizeof node[0]);
                     node->data = $2;
                     if (list->start == NULL) {
                         list->start = node;
