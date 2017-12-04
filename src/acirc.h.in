@@ -1,7 +1,7 @@
 #ifndef __ACIRC_H__
 #define __ACIRC_H__
 
-@ACIRC_HAVE_GMP@
+#cmakedefine HAVE_GMP
 
 #include <stdbool.h>
 #include <stddef.h>
