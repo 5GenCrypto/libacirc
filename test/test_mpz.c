@@ -15,7 +15,7 @@ main(void)
 
     acirc_verbose(true);
 
-    fp = fopen("circuits/test_circ.acirc", "r");
+    fp = fopen("test/circuits/test_circ.acirc", "r");
     c = acirc_fread(NULL, fp);
     fclose(fp);
     if (c == NULL)

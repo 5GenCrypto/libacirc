@@ -1,5 +1,5 @@
 #include "outputs.h"
-#include "utils.h"
+#include "../utils.h"
 
 #include <assert.h>
 #include <stdlib.h>

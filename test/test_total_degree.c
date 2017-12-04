@@ -10,7 +10,7 @@ main(void)
     size_t d;
     FILE *fp;
 
-    fp = fopen("circuits/test_total_degree.acirc", "r");
+    fp = fopen("test/circuits/test_total_degree.acirc", "r");
     c = acirc_fread(NULL, fp);
     fclose(fp);
     if (c == NULL)

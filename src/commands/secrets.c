@@ -1,5 +1,5 @@
 #include "secrets.h"
-#include "utils.h"
+#include "../utils.h"
 
 #include <assert.h>
 #include <limits.h>

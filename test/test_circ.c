@@ -14,14 +14,14 @@ main(void)
 
     {
         acirc c;
-        fp = fopen("circuits/test_circ.acirc", "r");
+        fp = fopen("test/circuits/test_circ.acirc", "r");
         acirc_init(&c);
         (void) acirc_fread(&c, fp);
         fclose(fp);
 
         result = acirc_ensure(&c);
 
-        fp = fopen("circuits/test_circ2.acirc", "w");
+        fp = fopen("test/circuits/test_circ2.acirc", "w");
         acirc_fwrite(&c, fp);
         fclose(fp);
 
@@ -30,7 +30,7 @@ main(void)
 
     {
         acirc *c;
-        fp = fopen("circuits/test_circ2.acirc", "r");
+        fp = fopen("test/circuits/test_circ2.acirc", "r");
         c = acirc_fread(NULL, fp);
         fclose(fp);
         if (c == NULL)
