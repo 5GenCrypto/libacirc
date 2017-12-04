@@ -11,11 +11,16 @@ include(GNUInstallDirs)
 option(HAVE_GMP "Define whether gmp is enabled" ON)
 message(STATUS "GMP: ${HAVE_GMP}")
 
+find_package(BISON)
+find_package(FLEX)
+BISON_TARGET(Parser src/parse.y ${CMAKE_CURRENT_SOURCE_DIR}/src/parse.c)
+FLEX_TARGET(Scanner src/scan.l ${CMAKE_CURRENT_SOURCE_DIR}/src/scan.c)
+
 set(acirc_SOURCES
   src/acirc.c
   src/build.c
-  src/parse.c
-  src/scan.c
+  ${BISON_Parser_OUTPUTS}
+  ${FLEX_Scanner_OUTPUTS}
   src/topo.c
   src/utils.c
   src/commands/outputs.c
